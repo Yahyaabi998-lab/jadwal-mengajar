@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Mengajar Real-Time</title>
+    <!-- Tailwind CSS untuk Desain Modern & Responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-800">
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold">Jadwal Mengajar Hari Ini</h1>
+                    <p class="text-blue-100 text-sm mt-1" id="info-tanggal">Memuat informasi tanggal...</p>
+                </div>
+                <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-right">
+                    <span class="block text-xs uppercase tracking-wider text-blue-100 font-semibold" id="info-siklus">Siklus --</span>
+                    <span class="text-xl font-extrabold" id="info-pekan">Pekan --</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Filter Tab Hari -->
+        <div class="flex overflow-x-auto gap-2 mb-6 pb-2 border-b border-slate-200" id="container-tab-hari">
+            <!-- Tab hari akan diisi otomatis via JS -->
+        </div>
+
+        <!-- Indikator Loading -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent"></div>
+            <p class="mt-3 text-slate-500 font-medium">Mengambil data jadwal dari Google Sheets...</p>
+        </div>
+
+        <!-- Daftar Kartu Jadwal -->
+        <div id="container-jadwal" class="grid gap-4 hidden">
+            <!-- Kartu siswa akan di-render di sini -->
+        </div>
+
+        <!-- Pesan Kosong -->
+        <div id="empty-state" class="hidden text-center py-12 bg-white rounded-2xl shadow-sm border border-slate-100">
+            <i class="fa-solid font-regular fa-calendar-xmark text-4xl text-slate-300 mb-3"></i>
+            <h3 class="text-lg font-semibold text-slate-600">Tidak Ada Jadwal Mengajar</h3>
+            <p class="text-slate-400 text-sm">Tidak ada sesi kelas yang terdaftar untuk hari ini.</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyW52zNb_RuPzt5EbV2Te_qmBaMQgs853CIzTKjPPvfQLG2LToA90jRgKpaOmSQSQPB7w/exec";
+        const DAFTAR_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
+        let masterJadwal = [];
+        let pekanAktifGlobal = "";
+        let hariDipilih = "";
+
+        async function muatData() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+
+                masterJadwal = data.jadwal;
+                pekanAktifGlobal = data.info.pekan_aktif;
+
+                // Tampilkan info header
+                document.getElementById('info-tanggal').innerText = `${data.info.hari_aktif}, ${data.info.tanggal_akses}`;
+                document.getElementById('info-siklus').innerText = data.info.siklus_aktif;
+                document.getElementById('info-pekan').innerText = data.info.pekan_aktif;
+
+                // Set hari aktif default sesuai hari ini
+                hariDipilih = data.info.hari_aktif;
+                
+                buatTabHari();
+                tampilkanJadwal();
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('container-jadwal').classList.remove('hidden');
+
+            } catch (err) {
+                document.getElementById('loading').innerHTML = `
+                    <p class="text-red-500 font-semibold">Gagal memuat data jadwal.</p>
+                    <p class="text-xs text-slate-400 mt-1">${err.message}</p>
+                `;
+            }
+        }
+
+        function buatTabHari() {
+            const containerTab = document.getElementById('container-tab-hari');
+            containerTab.innerHTML = "";
+
+            DAFTAR_HARI.forEach(hari => {
+                if (hari === "Minggu") return; // Skip hari Minggu jika tidak ada KBM
+                
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
+                    hari === hariDipilih 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`;
+                btn.innerText = hari;
+                btn.onclick = () => {
+                    hariDipilih = hari;
+                    buatTabHari();
+                    tampilkanJadwal();
+                };
+                containerTab.appendChild(btn);
+            });
+        }
+
+        function hitungStatusWaktu(jamMulaiStr, jamSelesaiStr, hariJadwal) {
+            if (hariJadwal !== hariDipilih) return { label: "Terjadwal", color: "bg-slate-100 text-slate-600" };
+
+            const skrg = new Date();
+            const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number);
+            const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number);
+
+            const waktuMulai = new Date(skrg);
+            waktuMulai.setHours(hMulai, mMulai, 0);
+
+            const waktuSelesai = new Date(skrg);
+            waktuSelesai.setHours(hSelesai, mSelesai, 0);
+
+            if (skrg >= waktuMulai && skrg <= waktuSelesai) {
+                return { label: "● LIVE NOW", color: "bg-emerald-500 text-white animate-pulse" };
+            } else if (skrg < waktuMulai) {
+                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
+            } else {
+                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
+            }
+        }
+
+        function tampilkanJadwal() {
+            const container = document.getElementById('container-jadwal');
+            const emptyState = document.getElementById('empty-state');
+            container.innerHTML = "";
+
+            // Filter data sesuai hari dipiliih dan pekan aktif
+            const filtered = masterJadwal.filter(item => {
+                const cocokHari = item.Hari.toLowerCase() === hariDipilih.toLowerCase();
+                const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                return cocokHari && cocokPekan;
+            });
+
+            if (filtered.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            filtered.forEach(item => {
+                const status = hitungStatusWaktu(item.Jam_Mulai, item.Jam_Selesai, item.Hari);
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
+                
+                card.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
+                            ${item.No}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
+                                <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
+                            </div>
+                            <p class="text-slate-500 text-xs mt-1">
+                                <i class="fa-solid fa-school text-slate-400 mr-1"></i>${item.Asal_Sekolah}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
+                            ${status.label}
+                        </span>
+                        <div class="text-right mt-1">
+                            <span class="text-sm font-semibold text-slate-700 block">${item.Jam_Mulai} - ${item.Jam_Selesai} WIB</span>
+                            <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Jalankan saat halaman dibuka
+        window.onload = muatData;
+    </script>
+</body>
+</html>
