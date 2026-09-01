@@ -176,6 +176,7 @@
                 const jamSelesai = bersihkanJam(item.Jam_Selesai);
                 const sekolah = item.Asal_Sekolah || item["Asal Sekolah"] || "-";
                 const ruang = item.Ruang || item["Ruang"] || "-";
+                const cabang = item.Cabang || item["Cabang"] || "-";
                 
                 const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
 
@@ -191,8 +192,9 @@
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
                                 <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md">${cabang}</span>
                             </div>
-                            <div class="flex items-center gap-3 text-slate-500 text-xs mt-1">
+                            <div class="flex items-center gap-3 text-slate-500 text-xs mt-1.5 flex-wrap">
                                 <span><i class="fa-solid fa-school text-slate-400 mr-1"></i>${sekolah}</span>
                                 <span>•</span>
                                 <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
