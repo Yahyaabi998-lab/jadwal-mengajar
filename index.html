@@ -21,9 +21,26 @@
                     <h1 class="text-2xl md:text-3xl font-bold">Jadwal Mengajar Real-Time</h1>
                     <p class="text-blue-100 text-sm mt-1" id="info-tanggal">Memuat informasi tanggal...</p>
                 </div>
-                <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-right">
+                <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-right shrink-0">
                     <span class="block text-xs uppercase tracking-wider text-blue-100 font-semibold" id="info-siklus">Siklus --</span>
                     <span class="text-xl font-extrabold" id="info-pekan">Pekan --</span>
+                </div>
+            </div>
+
+            <!-- Widget Countdown KP Selanjutnya -->
+            <div id="box-countdown" class="mt-5 pt-4 border-t border-white/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-amber-400 text-slate-900 flex items-center justify-center font-bold shadow-sm" id="icon-countdown">
+                        <i class="fa-solid fa-clock text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase font-bold tracking-wider text-blue-200 block" id="label-kp-next">KP Selanjutnya Hari Ini</span>
+                        <h3 class="text-sm font-semibold text-white" id="info-kp-next">Mencari KP terdekat...</h3>
+                    </div>
+                </div>
+                <div class="text-left sm:text-right w-full sm:w-auto">
+                    <div class="text-xl font-mono font-black tracking-wider text-amber-300" id="timer-countdown">--:--:--</div>
+                    <span class="text-[11px] text-blue-100 block" id="sub-timer-info">Menghitung mundur</span>
                 </div>
             </div>
         </header>
@@ -56,6 +73,7 @@
         let pekanAktifGlobal = "";
         let hariAktifRealtime = "";
         let hariDipilih = "";
+        let timerInterval = null;
 
         async function muatData() {
             try {
@@ -74,6 +92,7 @@
                 
                 buatTabHari();
                 tampilkanJadwal();
+                mulaiCountdownKP();
 
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('container-jadwal').classList.remove('hidden');
@@ -105,6 +124,220 @@
                     buatTabHari();
                     tampilkanJadwal();
                 };
+                containerTab.appendChild(btn);
+            });
+        }
+
+        function bersihkanJam(strJam) {
+            if (!strJam) return "00:00";
+            if (strJam.includes('T')) {
+                const dateObj = new Date(strJam);
+                const h = String(dateObj.getUTCHours()).padStart(2, '0');
+                const m = String(dateObj.getUTCMinutes()).padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            return strJam.replace('.', ':').substring(0, 5);
+        }
+
+        function hitungStatusWaktu(jamMulaiStr, jamSelesaiStr, hariJadwal) {
+            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
+            const indexHariTab = DAFTAR_HARI.indexOf(hariJadwal);
+
+            if (indexHariTab > indexHariIni) {
+                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
+            }
+
+            if (indexHariTab < indexHariIni) {
+                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
+            }
+
+            const skrg = new Date();
+            const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number);
+            const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number);
+
+            const waktuMulai = new Date(skrg);
+            waktuMulai.setHours(hMulai || 0, mMulai || 0, 0);
+
+            const waktuSelesai = new Date(skrg);
+            waktuSelesai.setHours(hSelesai || 0, mSelesai || 0, 0);
+
+            if (skrg >= waktuMulai && skrg <= waktuSelesai) {
+                return { label: "● LIVE NOW", color: "bg-emerald-500 text-white animate-pulse" };
+            } else if (skrg < waktuMulai) {
+                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
+            } else {
+                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
+            }
+        }
+
+        function mulaiCountdownKP() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            function updateTimer() {
+                const skrg = new Date();
+                
+                // Ambil jadwal hari ini yang cocok dengan pekan aktif
+                let jadwalHariIni = masterJadwal.filter(item => {
+                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
+                    const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                    return cocokHari && cocokPekan;
+                });
+
+                if (jadwalHariIni.length === 0) {
+                    document.getElementById('info-kp-next').innerText = "Tidak ada KP hari ini";
+                    document.getElementById('timer-countdown').innerText = "--:--:--";
+                    document.getElementById('sub-timer-info').innerText = "Selamat beristirahat";
+                    return;
+                }
+
+                // Cari KP yang sedang berlangsung atau yang akan datang terdekat
+                let kpLive = null;
+                let kpmendatang = [];
+
+                jadwalHariIni.forEach(item => {
+                    const jamMulaiStr = bersihkanJam(item.Jam_Mulai);
+                    const jamSelesaiStr = bersihkanJam(item.Jam_Selesai);
+
+                    const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number);
+                    const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number);
+
+                    const tMulai = new Date(skrg);
+                    tMulai.setHours(hMulai, mMulai, 0, 0);
+
+                    const tSelesai = new Date(skrg);
+                    tSelesai.setHours(hSelesai, mSelesai, 0, 0);
+
+                    if (skrg >= tMulai && skrg <= tSelesai) {
+                        kpLive = { item, tSelesai };
+                    } else if (skrg < tMulai) {
+                        kpmendatang.push({ item, tMulai });
+                    }
+                });
+
+                // Jika ada KP yang sedang berjalan
+                if (kpLive) {
+                    const selisih = kpLive.tSelesai - skrg;
+                    const jam = Math.floor(selisih / 3600000);
+                    const menit = Math.floor((selisih % 3600000) / 60000);
+                    const detik = Math.floor((selisih % 60000) / 1000);
+
+                    document.getElementById('label-kp-next').innerText = "KP Sedang Berlangsung";
+                    document.getElementById('info-kp-next').innerText = `${kpLive.item.Nama} (${kpLive.item.Kelas})`;
+                    document.getElementById('timer-countdown').innerText = 
+                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
+                    document.getElementById('sub-timer-info').innerText = "Sisa waktu mengajar";
+                    return;
+                }
+
+                // Jika ada KP yang akan datang
+                if (kpmendatang.length > 0) {
+                    // Urutkan berdasarkan waktu paling dekat
+                    kpmendatang.sort((a, b) => a.tMulai - b.tMulai);
+                    const kpBerikutnya = kpmendatang[0];
+
+                    const selisih = kpBerikutnya.tMulai - skrg;
+                    const jam = Math.floor(selisih / 3600000);
+                    const menit = Math.floor((selisih % 3600000) / 60000);
+                    const detik = Math.floor((selisih % 60000) / 1000);
+
+                    const jamMulaiFormatted = bersihkanJam(kpBerikutnya.item.Jam_Mulai);
+
+                    document.getElementById('label-kp-next').innerText = `KP Selanjutnya (${jamMulaiFormatted} WIB)`;
+                    document.getElementById('info-kp-next').innerText = `${kpBerikutnya.item.Nama} (${kpBerikutnya.item.Kelas})`;
+                    document.getElementById('timer-countdown').innerText = 
+                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
+                    document.getElementById('sub-timer-info').innerText = "Menuju sesi dimulai";
+                    return;
+                }
+
+                // Jika semua KP hari ini sudah selesai
+                document.getElementById('label-kp-next').innerText = "Status Sesi Hari Ini";
+                document.getElementById('info-kp-next').innerText = "Semua KP Hari Ini Telah Selesai";
+                document.getElementById('timer-countdown').innerText = "00:00:00";
+                document.getElementById('sub-timer-info').innerText = "Sampai jumpa di KP berikutnya";
+            }
+
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function tampilkanJadwal() {
+            const container = document.getElementById('container-jadwal');
+            const emptyState = document.getElementById('empty-state');
+            container.innerHTML = "";
+
+            // 1. Filter data berdasarkan hari & pekan
+            let filtered = masterJadwal.filter(item => {
+                const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
+                const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                return cocokHari && cocokPekan;
+            });
+
+            if (filtered.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            // 2. Sortir data berdasarkan jam mulai terkecil (paling awal di atas)
+            filtered.sort((a, b) => {
+                const jamA = bersihkanJam(a.Jam_Mulai);
+                const jamB = bersihkanJam(b.Jam_Mulai);
+                return jamA.localeCompare(jamB);
+            });
+
+            emptyState.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            // 3. Render elemen kartu dengan penomoran berurutan (index + 1)
+            filtered.forEach((item, index) => {
+                const jamMulai = bersihkanJam(item.Jam_Mulai);
+                const jamSelesai = bersihkanJam(item.Jam_Selesai);
+                const sekolah = item.Asal_Sekolah || item["Asal Sekolah"] || "-";
+                const ruang = item.Ruang || item["Ruang"] || "-";
+                const cabang = item.Cabang || item["Cabang"] || "-";
+                
+                const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
+                
+                card.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
+                                <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md">${cabang}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-slate-500 text-xs mt-1.5 flex-wrap">
+                                <span><i class="fa-solid fa-school text-slate-400 mr-1"></i>${sekolah}</span>
+                                <span>•</span>
+                                <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
+                            ${status.label}
+                        </span>
+                        <div class="text-right mt-1">
+                            <span class="text-sm font-semibold text-slate-700 block">${jamMulai} - ${jamSelesai} WIB</span>
+                            <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.onload = muatData;
+    </script>
+</body>
+</html>
                 containerTab.appendChild(btn);
             });
         }
