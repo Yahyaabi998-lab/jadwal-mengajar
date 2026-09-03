@@ -170,12 +170,24 @@
             }
         }
 
+        function formatNamaSiswaNext(daftarSiswa) {
+            if (!daftarSiswa || daftarSiswa.length === 0) return "-";
+            
+            const siswaPertama = daftarSiswa[0];
+            if (daftarSiswa.length === 1) {
+                return `${siswaPertama.Nama} (${siswaPertama.Kelas})`;
+            } else {
+                return `${siswaPertama.Nama} dkk. (${daftarSiswa.length} Siswa)`;
+            }
+        }
+
         function mulaiCountdownKP() {
             if (timerInterval) clearInterval(timerInterval);
 
             function updateTimer() {
                 const skrg = new Date();
                 
+                // Ambil jadwal hari ini yang cocok dengan pekan aktif
                 let jadwalHariIni = masterJadwal.filter(item => {
                     const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
                     const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
@@ -189,15 +201,26 @@
                     return;
                 }
 
-                let kpLive = null;
-                let kpmendatang = [];
-
+                // Kelompokkan jadwal berdasarkan Jam_Mulai
+                let grupJadwal = {};
                 jadwalHariIni.forEach(item => {
                     const jamMulaiStr = bersihkanJam(item.Jam_Mulai);
-                    const jamSelesaiStr = bersihkanJam(item.Jam_Selesai);
+                    if (!grupJadwal[jamMulaiStr]) {
+                        grupJadwal[jamMulaiStr] = {
+                            jamMulai: jamMulaiStr,
+                            jamSelesai: bersihkanJam(item.Jam_Selesai),
+                            listSiswa: []
+                        };
+                    }
+                    grupJadwal[jamMulaiStr].listSiswa.push(item);
+                });
 
-                    const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number);
-                    const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number);
+                let sesiLive = null;
+                let sesiMendatang = [];
+
+                Object.values(grupJadwal).forEach(grup => {
+                    const [hMulai, mMulai] = grup.jamMulai.split(':').map(Number);
+                    const [hSelesai, mSelesai] = grup.jamSelesai.split(':').map(Number);
 
                     const tMulai = new Date(skrg);
                     tMulai.setHours(hMulai, mMulai, 0, 0);
@@ -206,45 +229,46 @@
                     tSelesai.setHours(hSelesai, mSelesai, 0, 0);
 
                     if (skrg >= tMulai && skrg <= tSelesai) {
-                        kpLive = { item, tSelesai };
+                        sesiLive = { grup, tSelesai };
                     } else if (skrg < tMulai) {
-                        kpmendatang.push({ item, tMulai });
+                        sesiMendatang.push({ grup, tMulai });
                     }
                 });
 
-                if (kpLive) {
-                    const selisih = kpLive.tSelesai - skrg;
+                // Jika ada sesi yang sedang LIVE
+                if (sesiLive) {
+                    const selisih = sesiLive.tSelesai - skrg;
                     const jam = Math.floor(selisih / 3600000);
                     const menit = Math.floor((selisih % 3600000) / 60000);
                     const detik = Math.floor((selisih % 60000) / 1000);
 
                     document.getElementById('label-kp-next').innerText = "KP Sedang Berlangsung";
-                    document.getElementById('info-kp-next').innerText = `${kpLive.item.Nama} (${kpLive.item.Kelas})`;
+                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiLive.grup.listSiswa);
                     document.getElementById('timer-countdown').innerText = 
                         `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
                     document.getElementById('sub-timer-info').innerText = "Sisa waktu mengajar";
                     return;
                 }
 
-                if (kpmendatang.length > 0) {
-                    kpmendatang.sort((a, b) => a.tMulai - b.tMulai);
-                    const kpBerikutnya = kpmendatang[0];
+                // Jika ada sesi yang akan datang
+                if (sesiMendatang.length > 0) {
+                    sesiMendatang.sort((a, b) => a.tMulai - b.tMulai);
+                    const sesiBerikutnya = sesiMendatang[0];
 
-                    const selisih = kpBerikutnya.tMulai - skrg;
+                    const selisih = sesiBerikutnya.tMulai - skrg;
                     const jam = Math.floor(selisih / 3600000);
                     const menit = Math.floor((selisih % 3600000) / 60000);
                     const detik = Math.floor((selisih % 60000) / 1000);
 
-                    const jamMulaiFormatted = bersihkanJam(kpBerikutnya.item.Jam_Mulai);
-
-                    document.getElementById('label-kp-next').innerText = `KP Selanjutnya (${jamMulaiFormatted} WIB)`;
-                    document.getElementById('info-kp-next').innerText = `${kpBerikutnya.item.Nama} (${kpBerikutnya.item.Kelas})`;
+                    document.getElementById('label-kp-next').innerText = `KP Selanjutnya (${sesiBerikutnya.grup.jamMulai} WIB)`;
+                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiBerikutnya.grup.listSiswa);
                     document.getElementById('timer-countdown').innerText = 
                         `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
                     document.getElementById('sub-timer-info').innerText = "Menuju sesi dimulai";
                     return;
                 }
 
+                // Jika seluruh sesi hari ini selesai
                 document.getElementById('label-kp-next').innerText = "Status Sesi Hari Ini";
                 document.getElementById('info-kp-next').innerText = "Semua KP Hari Ini Telah Selesai";
                 document.getElementById('timer-countdown').innerText = "00:00:00";
