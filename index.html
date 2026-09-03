@@ -152,77 +152,78 @@
         }
 
         function tampilkanJadwal() {
-    const container = document.getElementById('container-jadwal');
-    const emptyState = document.getElementById('empty-state');
-    container.innerHTML = "";
+            const container = document.getElementById('container-jadwal');
+            const emptyState = document.getElementById('empty-state');
+            container.innerHTML = "";
 
-    // 1. Filter data berdasarkan hari & pekan
-    let filtered = masterJadwal.filter(item => {
-        const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
-        const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
-        return cocokHari && cocokPekan;
-    });
+            // 1. Filter data berdasarkan hari & pekan
+            let filtered = masterJadwal.filter(item => {
+                const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
+                const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                return cocokHari && cocokPekan;
+            });
 
-    if (filtered.length === 0) {
-        container.classList.add('hidden');
-        emptyState.classList.remove('hidden');
-        return;
-    }
+            if (filtered.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
 
-    // 2. Sortir data berdasarkan jam mulai terkecil (paling awal di atas)
-    filtered.sort((a, b) => {
-        const jamA = bersihkanJam(a.Jam_Mulai);
-        const jamB = bersihkanJam(b.Jam_Mulai);
-        return jamA.localeCompare(jamB);
-    });
+            // 2. Sortir data berdasarkan jam mulai terkecil (paling awal di atas)
+            filtered.sort((a, b) => {
+                const jamA = bersihkanJam(a.Jam_Mulai);
+                const jamB = bersihkanJam(b.Jam_Mulai);
+                return jamA.localeCompare(jamB);
+            });
 
-    emptyState.classList.add('hidden');
-    container.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            container.classList.remove('hidden');
 
-    // 3. Render elemen kartu dengan penomoran dinamis (index + 1)
-    filtered.forEach((item, index) => {
-        const jamMulai = bersihkanJam(item.Jam_Mulai);
-        const jamSelesai = bersihkanJam(item.Jam_Selesai);
-        const sekolah = item.Asal_Sekolah || item["Asal Sekolah"] || "-";
-        const ruang = item.Ruang || item["Ruang"] || "-";
-        const cabang = item.Cabang || item["Cabang"] || "-";
-        
-        const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
+            // 3. Render elemen kartu dengan penomoran berurutan (index + 1)
+            filtered.forEach((item, index) => {
+                const jamMulai = bersihkanJam(item.Jam_Mulai);
+                const jamSelesai = bersihkanJam(item.Jam_Selesai);
+                const sekolah = item.Asal_Sekolah || item["Asal Sekolah"] || "-";
+                const ruang = item.Ruang || item["Ruang"] || "-";
+                const cabang = item.Cabang || item["Cabang"] || "-";
+                
+                const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
 
-        const card = document.createElement('div');
-        card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
-        
-        card.innerHTML = `
-            <div class="flex items-start gap-4">
-                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
-                    ${index + 1}
-                </div>
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
-                        <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
-                        <span class="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md">${cabang}</span>
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
+                
+                card.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
+                                <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md">${cabang}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-slate-500 text-xs mt-1.5 flex-wrap">
+                                <span><i class="fa-solid fa-school text-slate-400 mr-1"></i>${sekolah}</span>
+                                <span>•</span>
+                                <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3 text-slate-500 text-xs mt-1.5 flex-wrap">
-                        <span><i class="fa-solid fa-school text-slate-400 mr-1"></i>${sekolah}</span>
-                        <span>•</span>
-                        <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
+                    <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
+                            ${status.label}
+                        </span>
+                        <div class="text-right mt-1">
+                            <span class="text-sm font-semibold text-slate-700 block">${jamMulai} - ${jamSelesai} WIB</span>
+                            <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
-                    ${status.label}
-                </span>
-                <div class="text-right mt-1">
-                    <span class="text-sm font-semibold text-slate-700 block">${jamMulai} - ${jamSelesai} WIB</span>
-                    <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
-                </div>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
+                `;
+                container.appendChild(card);
+            });
+        }
+
         window.onload = muatData;
     </script>
 </body>
