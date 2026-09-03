@@ -176,7 +176,6 @@
             function updateTimer() {
                 const skrg = new Date();
                 
-                // Ambil jadwal hari ini yang cocok dengan pekan aktif
                 let jadwalHariIni = masterJadwal.filter(item => {
                     const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
                     const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
@@ -190,7 +189,6 @@
                     return;
                 }
 
-                // Cari KP yang sedang berlangsung atau yang akan datang terdekat
                 let kpLive = null;
                 let kpmendatang = [];
 
@@ -214,7 +212,6 @@
                     }
                 });
 
-                // Jika ada KP yang sedang berjalan
                 if (kpLive) {
                     const selisih = kpLive.tSelesai - skrg;
                     const jam = Math.floor(selisih / 3600000);
@@ -229,9 +226,7 @@
                     return;
                 }
 
-                // Jika ada KP yang akan datang
                 if (kpmendatang.length > 0) {
-                    // Urutkan berdasarkan waktu paling dekat
                     kpmendatang.sort((a, b) => a.tMulai - b.tMulai);
                     const kpBerikutnya = kpmendatang[0];
 
@@ -250,7 +245,6 @@
                     return;
                 }
 
-                // Jika semua KP hari ini sudah selesai
                 document.getElementById('label-kp-next').innerText = "Status Sesi Hari Ini";
                 document.getElementById('info-kp-next').innerText = "Semua KP Hari Ini Telah Selesai";
                 document.getElementById('timer-countdown').innerText = "00:00:00";
@@ -266,7 +260,6 @@
             const emptyState = document.getElementById('empty-state');
             container.innerHTML = "";
 
-            // 1. Filter data berdasarkan hari & pekan
             let filtered = masterJadwal.filter(item => {
                 const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
                 const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
@@ -279,7 +272,6 @@
                 return;
             }
 
-            // 2. Sortir data berdasarkan jam mulai terkecil (paling awal di atas)
             filtered.sort((a, b) => {
                 const jamA = bersihkanJam(a.Jam_Mulai);
                 const jamB = bersihkanJam(b.Jam_Mulai);
@@ -289,7 +281,6 @@
             emptyState.classList.add('hidden');
             container.classList.remove('hidden');
 
-            // 3. Render elemen kartu dengan penomoran berurutan (index + 1)
             filtered.forEach((item, index) => {
                 const jamMulai = bersihkanJam(item.Jam_Mulai);
                 const jamSelesai = bersihkanJam(item.Jam_Selesai);
