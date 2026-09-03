@@ -130,13 +130,21 @@
 
         function bersihkanJam(strJam) {
             if (!strJam) return "00:00";
-            if (strJam.includes('T')) {
-                const dateObj = new Date(strJam);
+            let jamClean = String(strJam).trim();
+            if (jamClean.includes('T')) {
+                const dateObj = new Date(jamClean);
                 const h = String(dateObj.getUTCHours()).padStart(2, '0');
                 const m = String(dateObj.getUTCMinutes()).padStart(2, '0');
                 return `${h}:${m}`;
             }
-            return strJam.replace('.', ':').substring(0, 5);
+            jamClean = jamClean.replace('.', ':');
+            const parts = jamClean.split(':');
+            if (parts.length >= 2) {
+                const h = parts[0].padStart(2, '0');
+                const m = parts[1].padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            return jamClean.substring(0, 5);
         }
 
         function hitungStatusWaktu(jamMulaiStr, jamSelesaiStr, hariJadwal) {
@@ -177,7 +185,7 @@
             if (daftarSiswa.length === 1) {
                 return `${siswaPertama.Nama} (${siswaPertama.Kelas})`;
             } else {
-                return `${siswaPertama.Nama} dkk. (${daftarSiswa.length} Siswa)`;
+                return `${siswaPertama.Nama} dkk. (${siswaPertama.Kelas}, ${daftarSiswa.length} Siswa)`;
             }
         }
 
@@ -187,7 +195,6 @@
             function updateTimer() {
                 const skrg = new Date();
                 
-                // Ambil jadwal hari ini yang cocok dengan pekan aktif
                 let jadwalHariIni = masterJadwal.filter(item => {
                     const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
                     const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
@@ -201,7 +208,6 @@
                     return;
                 }
 
-                // Kelompokkan jadwal berdasarkan Jam_Mulai
                 let grupJadwal = {};
                 jadwalHariIni.forEach(item => {
                     const jamMulaiStr = bersihkanJam(item.Jam_Mulai);
@@ -235,7 +241,6 @@
                     }
                 });
 
-                // Jika ada sesi yang sedang LIVE
                 if (sesiLive) {
                     const selisih = sesiLive.tSelesai - skrg;
                     const jam = Math.floor(selisih / 3600000);
@@ -250,7 +255,6 @@
                     return;
                 }
 
-                // Jika ada sesi yang akan datang
                 if (sesiMendatang.length > 0) {
                     sesiMendatang.sort((a, b) => a.tMulai - b.tMulai);
                     const sesiBerikutnya = sesiMendatang[0];
@@ -268,7 +272,6 @@
                     return;
                 }
 
-                // Jika seluruh sesi hari ini selesai
                 document.getElementById('label-kp-next').innerText = "Status Sesi Hari Ini";
                 document.getElementById('info-kp-next').innerText = "Semua KP Hari Ini Telah Selesai";
                 document.getElementById('timer-countdown').innerText = "00:00:00";
