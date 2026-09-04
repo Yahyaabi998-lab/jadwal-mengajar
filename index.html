@@ -31,6 +31,10 @@
                         <span class="text-xl font-extrabold" id="info-pekan">Pekan --</span>
                     </div>
                 </div>
+                <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-center">
+                    <span class="block text-[10px] uppercase tracking-wider text-blue-100 font-semibold">KP Hari Ini</span>
+                    <span class="text-xl font-extrabold text-amber-300" id="info-jumlah-kp">0</span>
+                </div>
             </div>
 
             <!-- Widget Countdown KP Selanjutnya -->
@@ -93,7 +97,14 @@
                 document.getElementById('info-tanggal').innerText = `Hari Ini: ${data.info.hari_aktif}, ${data.info.tanggal_akses}`;
                 document.getElementById('info-siklus').innerText = data.info.siklus_aktif;
                 document.getElementById('info-pekan').innerText = data.info.pekan_aktif;
-
+                // Hitung jumlah KP unik hari ini (berdasarkan Jam_Mulai yang berbeda)
+                let jadwalHariIni = masterJadwal.filter(item => {
+                    const cocokHari = item.Hari && item.Hari.toLowerCase() === data.info.hari_aktif.toLowerCase();
+                    const cocokPekan = item.Pekan_1 === data.info.pekan_aktif || item.Pekan_2 === data.info.pekan_aktif;
+                    return cocokHari && cocokPekan;
+                });
+                const jamUnikHariIni = new Set(jadwalHariIni.map(item => bersihkanJam(item.Jam_Mulai)));
+                document.getElementById('info-jumlah-kp').innerText = jamUnikHariIni.size;
                 hariDipilih = data.info.hari_aktif;
                 
                 buatTabHari();
