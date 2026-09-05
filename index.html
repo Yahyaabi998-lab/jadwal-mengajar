@@ -50,10 +50,11 @@
                 </div>
             </div>
         </header>
+
         <!-- Filter Tab Hari & Info Hari Dipilih -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 pb-2 border-b border-slate-200">
             <div class="flex overflow-x-auto gap-2 w-full sm:w-auto" id="container-tab-hari"></div>
-            <div class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg shrink-0" id="info-tab-detail">
+            <div class="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm shrink-0" id="info-tab-detail">
                 --
             </div>
         </div>
@@ -83,6 +84,7 @@
         let pekanAktifGlobal = "";
         let hariAktifRealtime = "";
         let hariDipilih = "";
+        let dataGlobalInfo = null;
         let timerInterval = null;
 
         async function muatData() {
@@ -93,10 +95,12 @@
                 masterJadwal = data.jadwal;
                 pekanAktifGlobal = data.info.pekan_aktif;
                 hariAktifRealtime = data.info.hari_aktif;
+                dataGlobalInfo = data.info;
 
                 document.getElementById('info-tanggal').innerText = `Hari Ini: ${data.info.hari_aktif}, ${data.info.tanggal_akses}`;
                 document.getElementById('info-siklus').innerText = data.info.siklus_aktif;
                 document.getElementById('info-pekan').innerText = data.info.pekan_aktif;
+
                 // Hitung jumlah KP unik hari ini (berdasarkan Jam_Mulai yang berbeda)
                 let jadwalHariIni = masterJadwal.filter(item => {
                     const cocokHari = item.Hari && item.Hari.toLowerCase() === data.info.hari_aktif.toLowerCase();
@@ -105,6 +109,7 @@
                 });
                 const jamUnikHariIni = new Set(jadwalHariIni.map(item => bersihkanJam(item.Jam_Mulai)));
                 document.getElementById('info-jumlah-kp').innerText = jamUnikHariIni.size;
+
                 hariDipilih = data.info.hari_aktif;
                 
                 buatTabHari();
@@ -300,101 +305,99 @@
         }
 
         function tampilkanJadwal() {
-        const container = document.getElementById('container-jadwal');
-        const emptyState = document.getElementById('empty-state');
-        container.innerHTML = "";
-    
-        let filtered = masterJadwal.filter(item => {
-            const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
-            const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
-            return cocokHari && cocokPekan;
-        });
-    
-        // --- Hitung Info Tanggal & Jumlah KP untuk Hari Terpilih ---
-        const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
-        const indexHariDipilih = DAFTAR_HARI.indexOf(hariDipilih);
-        
-        // Parse tanggal akses dari API (format: dd/mm/yyyy)
-        let tglAktif = new Date();
-        if (dataGlobalInfo && dataGlobalInfo.tanggal_akses) {
-            const parts = dataGlobalInfo.tanggal_akses.split('/');
-            if (parts.length === 3) {
-                tglAktif = new Date(parts[2], parts[1] - 1, parts[0]);
+            const container = document.getElementById('container-jadwal');
+            const emptyState = document.getElementById('empty-state');
+            container.innerHTML = "";
+
+            let filtered = masterJadwal.filter(item => {
+                const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
+                const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                return cocokHari && cocokPekan;
+            });
+
+            // --- Hitung Info Tanggal & Jumlah KP untuk Hari Terpilih ---
+            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
+            const indexHariDipilih = DAFTAR_HARI.indexOf(hariDipilih);
+            
+            let tglAktif = new Date();
+            if (dataGlobalInfo && dataGlobalInfo.tanggal_akses) {
+                const parts = dataGlobalInfo.tanggal_akses.split('/');
+                if (parts.length === 3) {
+                    tglAktif = new Date(parts[2], parts[1] - 1, parts[0]);
+                }
             }
-        }
-    
-        // Hitung selisih hari dari hari real-time ke hari yang diklik
-        const selisihHari = indexHariDipilih - indexHariIni;
-        const tglDipilih = new Date(tglAktif);
-        tglDipilih.setDate(tglAktif.getDate() + selisihHari);
-    
-        const tglFormatted = tglDipilih.toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' });
-        const jamUnikDipilih = new Set(filtered.map(item => bersihkanJam(item.Jam_Mulai))).size;
-    
-        const elInfoTab = document.getElementById('info-tab-detail');
-        if (elInfoTab) {
-            elInfoTab.innerHTML = `<i class="fa-solid fa-calendar-day text-blue-500 mr-1.5"></i>${hariDipilih}, ${tglFormatted} • <span class="text-blue-600 font-bold">${jamUnikDipilih} KP</span>`;
-        }
-        // -------------------------------------------------------------
-    
-        if (filtered.length === 0) {
-            container.classList.add('hidden');
-            emptyState.classList.remove('hidden');
-            return;
-        }
-    
-        filtered.sort((a, b) => {
-            const jamA = bersihkanJam(a.Jam_Mulai);
-            const jamB = bersihkanJam(b.Jam_Mulai);
-            return jamA.localeCompare(jamB);
-        });
-    
-        emptyState.classList.add('hidden');
-        container.classList.remove('hidden');
-    
-        filtered.forEach((item, index) => {
-            const jamMulai = bersihkanJam(item.Jam_Mulai);
-            const jamSelesai = bersihkanJam(item.Jam_Selesai);
-            const sekolah = item.Asal_Sekolah || item["Asal Sekolah"] || "-";
-            const ruang = item.Ruang || item["Ruang"] || "-";
-            const cabang = item.Cabang || item["Cabang"] || "-";
-            
-            const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
-    
-            const card = document.createElement('div');
-            card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
-            
-            card.innerHTML = `
-                <div class="flex items-start gap-4">
-                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
-                        ${index + 1}
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
-                            <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
-                            <span class="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md">${cabang}</span>
+
+            const selisihHari = indexHariDipilih - indexHariIni;
+            const tglDipilih = new Date(tglAktif);
+            tglDipilih.setDate(tglAktif.getDate() + selisihHari);
+
+            const tglFormatted = `${tglDipilih.getDate()}/${tglDipilih.getMonth() + 1}/${tglDipilih.getFullYear()}`;
+            const jamUnikDipilih = new Set(filtered.map(item => bersihkanJam(item.Jam_Mulai))).size;
+
+            const elInfoTab = document.getElementById('info-tab-detail');
+            if (elInfoTab) {
+                elInfoTab.innerHTML = `<i class="fa-solid fa-calendar-day text-blue-500 mr-1.5"></i>${hariDipilih}, ${tglFormatted} • <span class="text-blue-600 font-bold">${jamUnikDipilih} KP</span>`;
+            }
+            // -------------------------------------------------------------
+
+            if (filtered.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            filtered.sort((a, b) => {
+                const jamA = bersihkanJam(a.Jam_Mulai);
+                const jamB = bersihkanJam(b.Jam_Mulai);
+                return jamA.localeCompare(jamB);
+            });
+
+            emptyState.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            filtered.forEach((item, index) => {
+                const jamMulai = bersihkanJam(item.Jam_Mulai);
+                const jamSelesai = bersihkanJam(item.Jam_Selesai);
+                const sekolah = item.Asal_Sekolah || item["Asal Sekolah"] || "-";
+                const ruang = item.Ruang || item["Ruang"] || "-";
+                const cabang = item.Cabang || item["Cabang"] || "-";
+                
+                const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
+                
+                card.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
+                            ${index + 1}
                         </div>
-                        <div class="flex items-center gap-3 text-slate-500 text-xs mt-1.5 flex-wrap">
-                            <span><i class="fa-solid fa-school text-slate-400 mr-1"></i>${sekolah}</span>
-                            <span>•</span>
-                            <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
+                                <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md">${cabang}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-slate-500 text-xs mt-1.5 flex-wrap">
+                                <span><i class="fa-solid fa-school text-slate-400 mr-1"></i>${sekolah}</span>
+                                <span>•</span>
+                                <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                    <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
-                        ${status.label}
-                    </span>
-                    <div class="text-right mt-1">
-                        <span class="text-sm font-semibold text-slate-700 block">${jamMulai} - ${jamSelesai} WIB</span>
-                        <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
+                    <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
+                            ${status.label}
+                        </span>
+                        <div class="text-right mt-1">
+                            <span class="text-sm font-semibold text-slate-700 block">${jamMulai} - ${jamSelesai} WIB</span>
+                            <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
+                        </div>
                     </div>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    }
+                `;
+                container.appendChild(card);
+            });
+        }
 
         window.onload = muatData;
     </script>
