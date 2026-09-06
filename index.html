@@ -315,13 +315,14 @@
             // Tentukan pekan yang berlaku untuk hari/tab yang dipilih
             let pekanTarget = pekanAktifGlobal;
         
-            // Jika hari ini Minggu dan memilih tab hari biasa (Senin-Sabtu),
-            // atau jika berpindah ke pekan berikutnya
-            if (indexHariIni === 0 && indexHariDipilih > 0) {
-                // Otomatis menaikkan pekan (misal P4 jadi P5 / P1)
-                const angkaPekan = parseInt(pekanAktifGlobal.replace(/\D/g, '')) || 1;
-                pekanTarget = `P${angkaPekan + 1}`;
-            }
+            // Jika hari ini Minggu dan memilih tab hari biasa (Senin-Sabtu)
+                if (indexHariIni === 0 && indexHariDipilih > 0) {
+                    const angkaPekan = parseInt(pekanAktifGlobal.replace(/\D/g, '')) || 1;
+                    
+                    // Rotasi pekan 1-4 (Jika P4, balik lagi ke P1)
+                    const pekanBerikutnya = (angkaPekan % 4) + 1;
+                    pekanTarget = `P${pekanBerikutnya}`;
+                }
         
             let filtered = masterJadwal.filter(item => {
                 const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
