@@ -308,17 +308,28 @@
             const container = document.getElementById('container-jadwal');
             const emptyState = document.getElementById('empty-state');
             container.innerHTML = "";
-
-            let filtered = masterJadwal.filter(item => {
-                const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
-                const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
-                return cocokHari && cocokPekan;
-            });
-
-            // --- Hitung Info Tanggal & Jumlah KP untuk Hari Terpilih ---
+        
             const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
             const indexHariDipilih = DAFTAR_HARI.indexOf(hariDipilih);
-            
+        
+            // Tentukan pekan yang berlaku untuk hari/tab yang dipilih
+            let pekanTarget = pekanAktifGlobal;
+        
+            // Jika hari ini Minggu dan memilih tab hari biasa (Senin-Sabtu),
+            // atau jika berpindah ke pekan berikutnya
+            if (indexHariIni === 0 && indexHariDipilih > 0) {
+                // Otomatis menaikkan pekan (misal P4 jadi P5 / P1)
+                const angkaPekan = parseInt(pekanAktifGlobal.replace(/\D/g, '')) || 1;
+                pekanTarget = `P${angkaPekan + 1}`;
+            }
+        
+            let filtered = masterJadwal.filter(item => {
+                const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
+                const cocokPekan = item.Pekan_1 === pekanTarget || item.Pekan_2 === pekanTarget;
+                return cocokHari && cocokPekan;
+            });
+        
+            // --- Hitung Info Tanggal & Jumlah KP untuk Hari Terpilih ---
             let tglAktif = new Date();
             if (dataGlobalInfo && dataGlobalInfo.tanggal_akses) {
                 const parts = dataGlobalInfo.tanggal_akses.split('/');
@@ -326,35 +337,35 @@
                     tglAktif = new Date(parts[2], parts[1] - 1, parts[0]);
                 }
             }
-
+        
             const selisihHari = indexHariDipilih - indexHariIni;
             const tglDipilih = new Date(tglAktif);
-            tglDipilih.setDate(tglAktif.getDate() + selisihHari);
-
+            tglDipilih.setDate(tglAktif.getDate() + (selisihHari < 0 ? selisihHari + 7 : selisihHari));
+        
             const tglFormatted = `${tglDipilih.getDate()}/${tglDipilih.getMonth() + 1}/${tglDipilih.getFullYear()}`;
             const jamUnikDipilih = new Set(filtered.map(item => bersihkanJam(item.Jam_Mulai))).size;
-
+        
             const elInfoTab = document.getElementById('info-tab-detail');
             if (elInfoTab) {
-                elInfoTab.innerHTML = `<i class="fa-solid fa-calendar-day text-blue-500 mr-1.5"></i>${hariDipilih}, ${tglFormatted} • <span class="text-blue-600 font-bold">${jamUnikDipilih} KP</span>`;
+                elInfoTab.innerHTML = `<i class="fa-solid fa-calendar-day text-blue-500 mr-1.5"></i>${hariDipilih}, ${tglFormatted} • <span class="text-blue-600 font-bold">${jamUnikDipilih} KP</span> (${pekanTarget})`;
             }
             // -------------------------------------------------------------
-
+        
             if (filtered.length === 0) {
                 container.classList.add('hidden');
                 emptyState.classList.remove('hidden');
                 return;
             }
-
+        
             filtered.sort((a, b) => {
                 const jamA = bersihkanJam(a.Jam_Mulai);
                 const jamB = bersihkanJam(b.Jam_Mulai);
                 return jamA.localeCompare(jamB);
             });
-
+        
             emptyState.classList.add('hidden');
             container.classList.remove('hidden');
-
+        
             filtered.forEach((item, index) => {
                 const jamMulai = bersihkanJam(item.Jam_Mulai);
                 const jamSelesai = bersihkanJam(item.Jam_Selesai);
@@ -363,7 +374,7 @@
                 const cabang = item.Cabang || item["Cabang"] || "-";
                 
                 const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
-
+        
                 const card = document.createElement('div');
                 card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
                 
@@ -398,7 +409,6 @@
                 container.appendChild(card);
             });
         }
-
         window.onload = muatData;
     </script>
 </body>
