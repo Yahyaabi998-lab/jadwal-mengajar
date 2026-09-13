@@ -380,6 +380,7 @@
                 card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
                 
                 card.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
                             ${index + 1}
@@ -395,9 +396,20 @@
                                 <span>•</span>
                                 <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
                             </div>
+            
+                            <!-- Tombol Presensi Interaktif -->
+                            <div class="flex items-center gap-1.5 mt-3 flex-wrap">
+                                <span class="text-[11px] font-semibold text-slate-400 mr-1">Presensi:</span>
+                                ${item.Link_Hadir ? `<a href="${item.Link_Hadir}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg transition-colors">Hadir</a>` : ''}
+                                ${item.Link_BelumHadir ? `<a href="${item.Link_BelumHadir}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg transition-colors">Belum Hadir</a>` : ''}
+                                ${item.Link_Sakit ? `<a href="${item.Link_Sakit}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors">Sakit</a>` : ''}
+                                ${item.Link_Izin ? `<a href="${item.Link_Izin}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors">Izin</a>` : ''}
+                                ${item.Link_Alfa ? `<a href="${item.Link_Alfa}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg transition-colors">Alfa</a>` : ''}
+                            </div>
                         </div>
                     </div>
-                    <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+            
+                    <div class="flex md:flex-col items-end justify-between w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
                         <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
                             ${status.label}
                         </span>
@@ -406,6 +418,7 @@
                             <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
                         </div>
                     </div>
+                </div>
                 `;
                 container.appendChild(card);
             });
