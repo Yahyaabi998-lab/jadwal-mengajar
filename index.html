@@ -401,224 +401,15 @@
             container.innerHTML = "";
         
             const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
-            con                    return cocokHari && cocokPekan;
-                });
-                const jamUnikHariIni = new Set(jadwalHariIni.map(item => bersihkanJam(item.Jam_Mulai)));
-                document.getElementById('info-jumlah-kp').innerText = jamUnikHariIni.size;
-
-                hariDipilih = data.info.hari_aktif;
-                
-                buatTabHari();
-                tampilkanJadwal();
-                mulaiCountdownKP();
-
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('container-jadwal').classList.remove('hidden');
-
-            } catch (err) {
-                document.getElementById('loading').innerHTML = `
-                    <p class="text-red-500 font-semibold">Gagal memuat data jadwal.</p>
-                    <p class="text-xs text-slate-400 mt-1">${err.message}</p>
-                `;
-            }
-        }
-
-        function buatTabHari() {
-            const containerTab = document.getElementById('container-tab-hari');
-            containerTab.innerHTML = "";
-
-            DAFTAR_HARI.forEach(hari => {
-                if (hari === "Minggu") return;
-                
-                const btn = document.createElement('button');
-                btn.className = `px-4 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
-                    hari === hariDipilih 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                }`;
-                btn.innerText = hari;
-                btn.onclick = () => {
-                    hariDipilih = hari;
-                    buatTabHari();
-                    tampilkanJadwal();
-                };
-                containerTab.appendChild(btn);
-            });
-        }
-
-        function bersihkanJam(strJam) {
-            if (!strJam) return "00:00";
-            let jamClean = String(strJam).trim();
-            if (jamClean.includes('T')) {
-                const dateObj = new Date(jamClean);
-                const h = String(dateObj.getUTCHours()).padStart(2, '0');
-                const m = String(dateObj.getUTCMinutes()).padStart(2, '0');
-                return `${h}:${m}`;
-            }
-            jamClean = jamClean.replace('.', ':');
-            const parts = jamClean.split(':');
-            if (parts.length >= 2) {
-                const h = parts[0].padStart(2, '0');
-                const m = parts[1].padStart(2, '0');
-                return `${h}:${m}`;
-            }
-            return jamClean.substring(0, 5);
-        }
-
-        function hitungStatusWaktu(jamMulaiStr, jamSelesaiStr, hariJadwal) {
-            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
-            const indexHariTab = DAFTAR_HARI.indexOf(hariJadwal);
-
-            if (indexHariTab > indexHariIni) {
-                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
-            }
-
-            if (indexHariTab < indexHariIni) {
-                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
-            }
-
-            const skrg = new Date();
-            const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number);
-            const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number);
-
-            const waktuMulai = new Date(skrg);
-            waktuMulai.setHours(hMulai || 0, mMulai || 0, 0);
-
-            const waktuSelesai = new Date(skrg);
-            waktuSelesai.setHours(hSelesai || 0, mSelesai || 0, 0);
-
-            if (skrg >= waktuMulai && skrg <= waktuSelesai) {
-                return { label: "● LIVE NOW", color: "bg-emerald-500 text-white animate-pulse" };
-            } else if (skrg < waktuMulai) {
-                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
-            } else {
-                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
-            }
-        }
-
-        function formatNamaSiswaNext(daftarSiswa) {
-            if (!daftarSiswa || daftarSiswa.length === 0) return "-";
-            
-            const siswaPertama = daftarSiswa[0];
-            if (daftarSiswa.length === 1) {
-                return `${siswaPertama.Nama} (${siswaPertama.Kelas})`;
-            } else {
-                return `${siswaPertama.Nama} dkk. (${siswaPertama.Kelas}, ${daftarSiswa.length} Siswa)`;
-            }
-        }
-
-        function mulaiCountdownKP() {
-            if (timerInterval) clearInterval(timerInterval);
-
-            function updateTimer() {
-                const skrg = new Date();
-                
-                let jadwalHariIni = masterJadwal.filter(item => {
-                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
-                    const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
-                    return cocokHari && cocokPekan;
-                });
-
-                if (jadwalHariIni.length === 0) {
-                    document.getElementById('info-kp-next').innerText = "Tidak ada KP hari ini";
-                    document.getElementById('timer-countdown').innerText = "--:--:--";
-                    document.getElementById('sub-timer-info').innerText = "Selamat beristirahat😊";
-                    return;
-                }
-
-                let grupJadwal = {};
-                jadwalHariIni.forEach(item => {
-                    const jamMulaiStr = bersihkanJam(item.Jam_Mulai);
-                    if (!grupJadwal[jamMulaiStr]) {
-                        grupJadwal[jamMulaiStr] = {
-                            jamMulai: jamMulaiStr,
-                            jamSelesai: bersihkanJam(item.Jam_Selesai),
-                            listSiswa: []
-                        };
-                    }
-                    grupJadwal[jamMulaiStr].listSiswa.push(item);
-                });
-
-                let sesiLive = null;
-                let sesiMendatang = [];
-
-                Object.values(grupJadwal).forEach(grup => {
-                    const [hMulai, mMulai] = grup.jamMulai.split(':').map(Number);
-                    const [hSelesai, mSelesai] = grup.jamSelesai.split(':').map(Number);
-
-                    const tMulai = new Date(skrg);
-                    tMulai.setHours(hMulai, mMulai, 0, 0);
-
-                    const tSelesai = new Date(skrg);
-                    tSelesai.setHours(hSelesai, mSelesai, 0, 0);
-
-                    if (skrg >= tMulai && skrg <= tSelesai) {
-                        sesiLive = { grup, tSelesai };
-                    } else if (skrg < tMulai) {
-                        sesiMendatang.push({ grup, tMulai });
-                    }
-                });
-
-                if (sesiLive) {
-                    const selisih = sesiLive.tSelesai - skrg;
-                    const jam = Math.floor(selisih / 3600000);
-                    const menit = Math.floor((selisih % 3600000) / 60000);
-                    const detik = Math.floor((selisih % 60000) / 1000);
-
-                    document.getElementById('label-kp-next').innerText = "KP Sedang Berlangsung";
-                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiLive.grup.listSiswa);
-                    document.getElementById('timer-countdown').innerText = 
-                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
-                    document.getElementById('sub-timer-info').innerText = "Sisa waktu mengajar";
-                    return;
-                }
-
-                if (sesiMendatang.length > 0) {
-                    sesiMendatang.sort((a, b) => a.tMulai - b.tMulai);
-                    const sesiBerikutnya = sesiMendatang[0];
-
-                    const selisih = sesiBerikutnya.tMulai - skrg;
-                    const jam = Math.floor(selisih / 3600000);
-                    const menit = Math.floor((selisih % 3600000) / 60000);
-                    const detik = Math.floor((selisih % 60000) / 1000);
-
-                    document.getElementById('label-kp-next').innerText = `KP Selanjutnya (${sesiBerikutnya.grup.jamMulai} WIB)`;
-                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiBerikutnya.grup.listSiswa);
-                    document.getElementById('timer-countdown').innerText = 
-                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
-                    document.getElementById('sub-timer-info').innerText = "Menuju sesi dimulai";
-                    return;
-                }
-
-                document.getElementById('label-kp-next').innerText = "Status Sesi Hari Ini";
-                document.getElementById('info-kp-next').innerText = "Semua KP Hari Ini Telah Selesai";
-                document.getElementById('timer-countdown').innerText = "00:00:00";
-                document.getElementById('sub-timer-info').innerText = "Sampai jumpa di KP berikutnya😊";
-            }
-
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
-        }
-
-        function tampilkanJadwal() {
-            const container = document.getElementById('container-jadwal');
-            const emptyState = document.getElementById('empty-state');
-            container.innerHTML = "";
-        
-            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
             const indexHariDipilih = DAFTAR_HARI.indexOf(hariDipilih);
         
-            // Tentukan pekan yang berlaku untuk hari/tab yang dipilih
             let pekanTarget = pekanAktifGlobal;
         
-            // Jika hari ini Minggu dan memilih tab hari biasa (Senin-Sabtu)
-                if (indexHariIni === 0 && indexHariDipilih > 0) {
-                    const angkaPekan = parseInt(pekanAktifGlobal.replace(/\D/g, '')) || 1;
-                    
-                    // Rotasi pekan 1-4 (Jika P4, balik lagi ke P1)
-                    const pekanBerikutnya = (angkaPekan % 4) + 1;
-                    pekanTarget = `P${pekanBerikutnya}`;
-                }
+            if (indexHariIni === 0 && indexHariDipilih > 0) {
+                const angkaPekan = parseInt(pekanAktifGlobal.replace(/\D/g, '')) || 1;
+                const pekanBerikutnya = (angkaPekan % 4) + 1;
+                pekanTarget = `P${pekanBerikutnya}`;
+            }
         
             let filtered = masterJadwal.filter(item => {
                 const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
@@ -626,15 +417,7 @@
                 return cocokHari && cocokPekan;
             });
         
-            // --- Hitung Info Tanggal & Jumlah KP untuk Hari Terpilih ---
-            let tglAktif = new Date();
-            if (dataGlobalInfo && dataGlobalInfo.tanggal_akses) {
-                const parts = dataGlobalInfo.tanggal_akses.split('/');
-                if (parts.length === 3) {
-                    tglAktif = new Date(parts[2], parts[1] - 1, parts[0]);
-                }
-            }
-        
+            const tglAktif = new Date();
             const selisihHari = indexHariDipilih - indexHariIni;
             const tglDipilih = new Date(tglAktif);
             tglDipilih.setDate(tglAktif.getDate() + (selisihHari < 0 ? selisihHari + 7 : selisihHari));
@@ -646,7 +429,6 @@
             if (elInfoTab) {
                 elInfoTab.innerHTML = `<i class="fa-solid fa-calendar-day text-blue-500 mr-1.5"></i>${hariDipilih}, ${tglFormatted} • <span class="text-blue-600 font-bold">${jamUnikDipilih} KP</span> (${pekanTarget})`;
             }
-            // -------------------------------------------------------------
         
             if (filtered.length === 0) {
                 container.classList.add('hidden');
@@ -693,14 +475,14 @@
                                 <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
                             </div>
             
-                            <!-- Tombol Presensi Interaktif -->
+                            <!-- Tombol Presensi Interaktif (Tanpa Tab Baru) -->
                             <div class="flex items-center gap-1.5 mt-3 flex-wrap">
                                 <span class="text-[11px] font-semibold text-slate-400 mr-1">Presensi:</span>
-                                ${item.Link_Hadir ? `<a href="${item.Link_Hadir}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg transition-colors">Hadir</a>` : ''}
-                                ${item.Link_BelumHadir ? `<a href="${item.Link_BelumHadir}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg transition-colors">Belum Hadir</a>` : ''}
-                                ${item.Link_Sakit ? `<a href="${item.Link_Sakit}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors">Sakit</a>` : ''}
-                                ${item.Link_Izin ? `<a href="${item.Link_Izin}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors">Izin</a>` : ''}
-                                ${item.Link_Alfa ? `<a href="${item.Link_Alfa}" target="_blank" class="px-2.5 py-1 text-xs font-semibold bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg transition-colors">Alfa</a>` : ''}
+                                ${buatTombolPresensi(item.Nama, 'Hadir', item.Link_Hadir, 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200')}
+                                ${buatTombolPresensi(item.Nama, 'Belum Hadir', item.Link_BelumHadir, 'bg-amber-100 text-amber-700 hover:bg-amber-200')}
+                                ${buatTombolPresensi(item.Nama, 'Sakit', item.Link_Sakit, 'bg-blue-100 text-blue-700 hover:bg-blue-200')}
+                                ${buatTombolPresensi(item.Nama, 'Izin', item.Link_Izin, 'bg-purple-100 text-purple-700 hover:bg-purple-200')}
+                                ${buatTombolPresensi(item.Nama, 'Alfa', item.Link_Alfa, 'bg-rose-100 text-rose-700 hover:bg-rose-200')}
                             </div>
                         </div>
                     </div>
