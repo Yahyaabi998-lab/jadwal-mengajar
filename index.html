@@ -93,19 +93,315 @@
                 const data = await response.json();
 
                 masterJadwal = data.jadwal;
-                pekanAktifGlobal = data.info.pekan_aktif;
-                hariAktifRealtime = data.info.hari_aktif;
-                dataGlobalInfo = data.info;
+                
+                // Ambil tanggal waktu lokal browser pengguna
+                const skrg = new Date();
+                hariAktifRealtime = DAFTAR_HARI[skrg.getDay()];
+                const tglStr = `${skrg.getDate()}/${skrg.getMonth() + 1}/${skrg.getFullYear()}`;
 
-                document.getElementById('info-tanggal').innerText = `Hari Ini: ${data.info.hari_aktif}, ${data.info.tanggal_akses}`;
-                document.getElementById('info-siklus').innerText = data.info.siklus_aktif;
-                document.getElementById('info-pekan').innerText = data.info.pekan_aktif;
+                // Siklus dan Pekan membaca langsung dari objek 'info' backend Code.gs
+                const siklus = data.info ? data.info.siklus : 3;
+                pekanAktifGlobal = data.info ? data.info.pekan : "P2";
 
-                // Hitung jumlah KP unik hari ini (berdasarkan Jam_Mulai yang berbeda)
+                document.getElementById('info-tanggal').innerText = `Hari Ini: ${hariAktifRealtime}, ${tglStr}`;
+                document.getElementById('info-siklus').innerText = `Siklus ${siklus}`;
+                document.getElementById('info-pekan').innerText = pekanAktifGlobal;
+
+                // Hitung jumlah KP unik hari ini
                 let jadwalHariIni = masterJadwal.filter(item => {
-                    const cocokHari = item.Hari && item.Hari.toLowerCase() === data.info.hari_aktif.toLowerCase();
-                    const cocokPekan = item.Pekan_1 === data.info.pekan_aktif || item.Pekan_2 === data.info.pekan_aktif;
+                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
+                    const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
                     return cocokHari && cocokPekan;
+                });
+                const jamUnikHariIni = new Set(jadwalHariIni.map(item => bersihkanJam(item.Jam_Mulai)));
+                document.getElementById('info-jumlah-kp').innerText = jamUnikHariIni.size;
+
+                hariDipilih = hariAktifRealtime === "Minggu" ? "Senin" : hariAktifRealtime;
+                
+                buatTabHari();
+                tampilkanJadwal();
+                mulaiCountdownKP();
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('container-jadwal').classList.remove('hidden');
+
+            } catch (err) {
+                document.getElementById('loading').innerHTML = `
+                    <p class="text-red-500 font-semibold">Gagal memuat data jadwal.</p>
+                    <p class="text-xs text-slate-400 mt-1">${err.message}</p>
+                `;
+            }
+        }
+
+        // --- SUBMIT PRESENSI DIRECT (TANPA BUKA TAB BARU) ---
+        async function submitPresensiDirect(btnElement, namaSiswa, jenisPresensi, rawUrl) {
+            if (!rawUrl || !rawUrl.includes('docs.google.com/forms')) return;
+
+            let targetUrl = rawUrl;
+            if (targetUrl.includes('google.com/url?q=')) {
+                try {
+                    const parsed = new URL(targetUrl);
+                    targetUrl = parsed.searchParams.get('q') || targetUrl;
+                } catch (e) {
+                    console.error("Gagal parse URL:", e);
+                }
+            }
+
+            targetUrl = targetUrl.replace('/viewform', '/formResponse');
+
+            const originalContent = btnElement.innerHTML;
+            btnElement.disabled = true;
+            btnElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...`;
+
+            try {
+                await fetch(targetUrl, {
+                    method: 'POST',
+                    mode: 'no-cors'
+                });
+
+                const key = `presensi_${namaSiswa}_${jenisPresensi}`;
+                localStorage.setItem(key, 'true');
+
+                btnElement.className = "px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm cursor-default";
+                btnElement.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${jenisPresensi}`;
+                btnElement.disabled = false;
+
+                tampilkanPopup(`Presensi <b>${jenisPresensi}</b> untuk <b>${namaSiswa}</b> berhasil dicatat!`);
+
+            } catch (error) {
+                console.error("Gagal submit presensi:", error);
+                btnElement.disabled = false;
+                btnElement.innerHTML = originalContent;
+                tampilkanPopup(`Gagal mengirim presensi. Coba lagi.`);
+            }
+        }
+
+        function buatTombolPresensi(namaSiswa, jenis, url, kelasWarna) {
+            if (!url || typeof url !== 'string' || !url.includes('docs.google.com/forms')) {
+                return '';
+            }
+
+            const key = `presensi_${namaSiswa}_${jenis}`;
+            const sudahDiklik = localStorage.getItem(key) === 'true';
+
+            const safeNama = namaSiswa.replace(/'/g, "\\'");
+            const safeUrl = url.replace(/'/g, "\\'");
+
+            if (sudahDiklik) {
+                return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-circle-check"></i> ${jenis}
+                </button>`;
+            }
+
+            return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-semibold ${kelasWarna} rounded-lg transition-colors">
+                ${jenis}
+            </button>`;
+        }
+
+        function tampilkanPopup(pesan) {
+            let popup = document.getElementById('toast-presensi');
+            if (!popup) {
+                popup = document.createElement('div');
+                popup.id = 'toast-presensi';
+                popup.className = "fixed bottom-5 right-5 bg-slate-900/90 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl z-50 flex items-center gap-3 transition-all transform translate-y-10 opacity-0 border border-slate-700 text-sm";
+                document.body.appendChild(popup);
+            }
+
+            popup.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i> <span>${pesan}</span>`;
+            
+            setTimeout(() => {
+                popup.classList.remove('translate-y-10', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                popup.classList.add('translate-y-10', 'opacity-0');
+            }, 3000);
+        }
+
+        function buatTabHari() {
+            const containerTab = document.getElementById('container-tab-hari');
+            containerTab.innerHTML = "";
+
+            DAFTAR_HARI.forEach(hari => {
+                if (hari === "Minggu") return;
+                
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
+                    hari === hariDipilih 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`;
+                btn.innerText = hari;
+                btn.onclick = () => {
+                    hariDipilih = hari;
+                    buatTabHari();
+                    tampilkanJadwal();
+                };
+                containerTab.appendChild(btn);
+            });
+        }
+
+        function bersihkanJam(strJam) {
+            if (!strJam) return "00:00";
+            let jamClean = String(strJam).trim();
+            if (jamClean.includes('T')) {
+                const dateObj = new Date(jamClean);
+                const h = String(dateObj.getUTCHours()).padStart(2, '0');
+                const m = String(dateObj.getUTCMinutes()).padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            jamClean = jamClean.replace('.', ':');
+            const parts = jamClean.split(':');
+            if (parts.length >= 2) {
+                const h = parts[0].padStart(2, '0');
+                const m = parts[1].padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            return jamClean.substring(0, 5);
+        }
+
+        function hitungStatusWaktu(jamMulaiStr, jamSelesaiStr, hariJadwal) {
+            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
+            const indexHariTab = DAFTAR_HARI.indexOf(hariJadwal);
+
+            if (indexHariTab > indexHariIni) {
+                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
+            }
+
+            if (indexHariTab < indexHariIni) {
+                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
+            }
+
+            const skrg = new Date();
+            const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number);
+            const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number);
+
+            const waktuMulai = new Date(skrg);
+            waktuMulai.setHours(hMulai || 0, mMulai || 0, 0);
+
+            const waktuSelesai = new Date(skrg);
+            waktuSelesai.setHours(hSelesai || 0, mSelesai || 0, 0);
+
+            if (skrg >= waktuMulai && skrg <= waktuSelesai) {
+                return { label: "● LIVE NOW", color: "bg-emerald-500 text-white animate-pulse" };
+            } else if (skrg < waktuMulai) {
+                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
+            } else {
+                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
+            }
+        }
+
+        function formatNamaSiswaNext(daftarSiswa) {
+            if (!daftarSiswa || daftarSiswa.length === 0) return "-";
+            
+            const siswaPertama = daftarSiswa[0];
+            if (daftarSiswa.length === 1) {
+                return `${siswaPertama.Nama} (${siswaPertama.Kelas})`;
+            } else {
+                return `${siswaPertama.Nama} dkk. (${siswaPertama.Kelas}, ${daftarSiswa.length} Siswa)`;
+            }
+        }
+
+        function mulaiCountdownKP() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            function updateTimer() {
+                const skrg = new Date();
+                
+                let jadwalHariIni = masterJadwal.filter(item => {
+                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
+                    const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                    return cocokHari && cocokPekan;
+                });
+
+                if (jadwalHariIni.length === 0) {
+                    document.getElementById('info-kp-next').innerText = "Tidak ada KP hari ini";
+                    document.getElementById('timer-countdown').innerText = "--:--:--";
+                    document.getElementById('sub-timer-info').innerText = "Selamat beristirahat😊";
+                    return;
+                }
+
+                let grupJadwal = {};
+                jadwalHariIni.forEach(item => {
+                    const jamMulaiStr = bersihkanJam(item.Jam_Mulai);
+                    if (!grupJadwal[jamMulaiStr]) {
+                        grupJadwal[jamMulaiStr] = {
+                            jamMulai: jamMulaiStr,
+                            jamSelesai: bersihkanJam(item.Jam_Selesai),
+                            listSiswa: []
+                        };
+                    }
+                    grupJadwal[jamMulaiStr].listSiswa.push(item);
+                });
+
+                let sesiLive = null;
+                let sesiMendatang = [];
+
+                Object.values(grupJadwal).forEach(grup => {
+                    const [hMulai, mMulai] = grup.jamMulai.split(':').map(Number);
+                    const [hSelesai, mSelesai] = grup.jamSelesai.split(':').map(Number);
+
+                    const tMulai = new Date(skrg);
+                    tMulai.setHours(hMulai, mMulai, 0, 0);
+
+                    const tSelesai = new Date(skrg);
+                    tSelesai.setHours(hSelesai, mSelesai, 0, 0);
+
+                    if (skrg >= tMulai && skrg <= tSelesai) {
+                        sesiLive = { grup, tSelesai };
+                    } else if (skrg < tMulai) {
+                        sesiMendatang.push({ grup, tMulai });
+                    }
+                });
+
+                if (sesiLive) {
+                    const selisih = sesiLive.tSelesai - skrg;
+                    const jam = Math.floor(selisih / 3600000);
+                    const menit = Math.floor((selisih % 3600000) / 60000);
+                    const detik = Math.floor((selisih % 60000) / 1000);
+
+                    document.getElementById('label-kp-next').innerText = "KP Sedang Berlangsung";
+                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiLive.grup.listSiswa);
+                    document.getElementById('timer-countdown').innerText = 
+                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
+                    document.getElementById('sub-timer-info').innerText = "Sisa waktu mengajar";
+                    return;
+                }
+
+                if (sesiMendatang.length > 0) {
+                    sesiMendatang.sort((a, b) => a.tMulai - b.tMulai);
+                    const sesiBerikutnya = sesiMendatang[0];
+
+                    const selisih = sesiBerikutnya.tMulai - skrg;
+                    const jam = Math.floor(selisih / 3600000);
+                    const menit = Math.floor((selisih % 3600000) / 60000);
+                    const detik = Math.floor((selisih % 60000) / 1000);
+
+                    document.getElementById('label-kp-next').innerText = `KP Selanjutnya (${sesiBerikutnya.grup.jamMulai} WIB)`;
+                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiBerikutnya.grup.listSiswa);
+                    document.getElementById('timer-countdown').innerText = 
+                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
+                    document.getElementById('sub-timer-info').innerText = "Menuju sesi dimulai";
+                    return;
+                }
+
+                document.getElementById('label-kp-next').innerText = "Status Sesi Hari Ini";
+                document.getElementById('info-kp-next').innerText = "Semua KP Hari Ini Telah Selesai";
+                document.getElementById('timer-countdown').innerText = "00:00:00";
+                document.getElementById('sub-timer-info').innerText = "Sampai jumpa di KP berikutnya😊";
+            }
+
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function tampilkanJadwal() {
+            const container = document.getElementById('container-jadwal');
+            const emptyState = document.getElementById('empty-state');
+            container.innerHTML = "";
+        
+            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
+            con                    return cocokHari && cocokPekan;
                 });
                 const jamUnikHariIni = new Set(jadwalHariIni.map(item => bersihkanJam(item.Jam_Mulai)));
                 document.getElementById('info-jumlah-kp').innerText = jamUnikHariIni.size;
