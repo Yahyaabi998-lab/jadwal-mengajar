@@ -104,8 +104,10 @@
                 pekanAktifGlobal = data.info ? data.info.pekan : "P2";
 
                 document.getElementById('info-tanggal').innerText = `Hari Ini: ${hariAktifRealtime}, ${tglStr}`;
-                document.getElementById('info-siklus').innerText = `Siklus ${siklus}`;
-                document.getElementById('info-pekan').innerText = pekanAktifGlobal;
+                // GANTI BAGIAN INI:
+                document.getElementById('info-siklus').innerText = `Siklus ${data.info.siklus || 3}`;
+                document.getElementById('info-pekan').innerText = data.info.pekan || "P2";
+                pekanAktifGlobal = data.info.pekan || "P2";
 
                 // Hitung jumlah KP unik hari ini
                 let jadwalHariIni = masterJadwal.filter(item => {
