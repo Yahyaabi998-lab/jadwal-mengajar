@@ -187,64 +187,74 @@
       });
     }
 
-    function renderJadwal(hari) {
-      const container = document.getElementById("jadwal-container");
-      const emptyState = document.getElementById("empty-state");
-      container.innerHTML = "";
+function renderJadwal(hari) {
+  const container = document.getElementById("jadwal-container");
+  const emptyState = document.getElementById("empty-state");
+  container.innerHTML = "";
 
-      const listFitur = globalData.filter(item => item.Hari.toLowerCase() === hari.toLowerCase());
-      
-      const tanggalTeks = infoData.tanggal_akses || "";
-      document.getElementById("label-hari-aktif").innerText = `${hari}${hari === hariIniString ? " (Hari Ini)" : ""}${tanggalTeks ? ' • ' + tanggalTeks : ''}`;
-      document.getElementById("badge-total-sesi").innerText = `${listFitur.length} KP (${hariPilihan})`;
+  // Pembersihan kata hari agar cocok walau ada spasi atau penulisan beda
+  const hariTarget = hari.trim().toLowerCase();
 
-      if (listFitur.length === 0) {
-        emptyState.classList.remove("hidden");
-        return;
-      }
-      emptyState.classList.add("hidden");
+  const listFitur = globalData.filter(item => {
+    if (!item.Hari) return false;
+    const h = item.Hari.toString().trim().toLowerCase();
+    return h === hariTarget || h.startsWith(hariTarget.substring(0, 3)); // Mencocokkan "Senin", "Sen", "Selasa", dll.
+  });
+  
+  const tanggalTeks = infoData.tanggal_akses || "";
+  document.getElementById("label-hari-aktif").innerText = `${hari}${hari === hariIniString ? " (Hari Ini)" : ""}${tanggalTeks ? ' • ' + tanggalTeks : ''}`;
+  document.getElementById("badge-total-sesi").innerText = `${listFitur.length} KP (${hariPilihan})`;
 
-      const pekanKey = infoData.pekan || infoData.pekan_aktif || "P2";
+  if (listFitur.length === 0) {
+    emptyState.classList.remove("hidden");
+    return;
+  }
+  emptyState.classList.add("hidden");
 
-      listFitur.forEach((item) => {
-        const modulText = item[pekanKey === "P1" ? "Pekan_1" : "Pekan_2"] || item["Pekan_1"] || "-";
+  // Penentuan Modul Materi (P1 & P3 memakai Pekan_1, P2 & P4 memakai Pekan_2)
+  const pekanKey = infoData.pekan || infoData.pekan_aktif || "P1";
+  const isPekanGanjil = pekanKey.includes("1") || pekanKey.includes("3");
 
-        const card = document.createElement("div");
-        card.className = "bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition";
+  listFitur.forEach((item) => {
+    const modulText = isPekanGanjil 
+      ? (item.Pekan_1 || item["Pekan_1"] || "-") 
+      : (item.Pekan_2 || item["Pekan_2"] || "-");
 
-        card.innerHTML = `
-          <div class="flex items-start justify-between border-b border-slate-100 pb-3 mb-3">
-            <div>
-              <div class="flex items-center space-x-2">
-                <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">${item.Jam_Mulai} - ${item.Jam_Selesai}</span>
-                <span class="text-xs font-semibold text-slate-500">${item.Ruang ? 'Ruang ' + item.Ruang : ''}</span>
-              </div>
-              <h3 class="text-base font-bold text-slate-800 mt-1">${item.Nama}</h3>
-              <p class="text-xs text-slate-500">${item.Kelas} • ${item.Asal_Sekolah}</p>
-            </div>
-            <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">${item.Cabang}</span>
+    const card = document.createElement("div");
+    card.className = "bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition";
+
+    card.innerHTML = `
+      <div class="flex items-start justify-between border-b border-slate-100 pb-3 mb-3">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">${item.Jam_Mulai} - ${item.Jam_Selesai}</span>
+            <span class="text-xs font-semibold text-slate-500">${item.Ruang ? 'Ruang ' + item.Ruang : ''}</span>
           </div>
+          <h3 class="text-base font-bold text-slate-800 mt-1">${item.Nama}</h3>
+          <p class="text-xs text-slate-500">${item.Kelas} • ${item.Asal_Sekolah}</p>
+        </div>
+        <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">${item.Cabang}</span>
+      </div>
 
-          <div class="bg-slate-50 p-2.5 rounded-xl text-xs text-slate-600 mb-3 flex items-start space-x-2">
-            <i class="fa-solid fa-book-open text-blue-500 mt-0.5"></i>
-            <div>
-              <span class="font-semibold text-slate-700">Materi ${pekanKey}:</span> ${modulText}
-            </div>
-          </div>
+      <div class="bg-slate-50 p-2.5 rounded-xl text-xs text-slate-600 mb-3 flex items-start space-x-2">
+        <i class="fa-solid fa-book-open text-blue-500 mt-0.5"></i>
+        <div>
+          <span class="font-semibold text-slate-700">Materi ${pekanKey}:</span> ${modulText}
+        </div>
+      </div>
 
-          <!-- Direct Attendance Buttons -->
-          <div class="grid grid-cols-5 gap-1.5 pt-1">
-            <button onclick="kirimPresensi('${item.Link_Hadir}')" class="py-1.5 text-[11px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition text-center">Hadir</button>
-            <button onclick="kirimPresensi('${item.Link_BelumHadir}')" class="py-1.5 text-[11px] font-medium bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white rounded-lg transition text-center">Belum</button>
-            <button onclick="kirimPresensi('${item.Link_Sakit}')" class="py-1.5 text-[11px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition text-center">Sakit</button>
-            <button onclick="kirimPresensi('${item.Link_Izin}')" class="py-1.5 text-[11px] font-medium bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white rounded-lg transition text-center">Izin</button>
-            <button onclick="kirimPresensi('${item.Link_Alfa}')" class="py-1.5 text-[11px] font-medium bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition text-center">Alfa</button>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
+      <!-- Tombol Presensi Direct -->
+      <div class="grid grid-cols-5 gap-1.5 pt-1">
+        <button onclick="kirimPresensi('${item.Link_Hadir}')" class="py-1.5 text-[11px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition text-center">Hadir</button>
+        <button onclick="kirimPresensi('${item.Link_BelumHadir}')" class="py-1.5 text-[11px] font-medium bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white rounded-lg transition text-center">Belum</button>
+        <button onclick="kirimPresensi('${item.Link_Sakit}')" class="py-1.5 text-[11px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition text-center">Sakit</button>
+        <button onclick="kirimPresensi('${item.Link_Izin}')" class="py-1.5 text-[11px] font-medium bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white rounded-lg transition text-center">Izin</button>
+        <button onclick="kirimPresensi('${item.Link_Alfa}')" class="py-1.5 text-[11px] font-medium bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition text-center">Alfa</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
     // Fungsi pengiriman presensi langsung (Direct Submission / Background Submit)
     function kirimPresensi(url) {
       if (!url || url.trim() === "" || url === "-") {
