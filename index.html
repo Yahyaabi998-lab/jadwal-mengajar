@@ -84,7 +84,6 @@
         let pekanAktifGlobal = "";
         let hariAktifRealtime = "";
         let hariDipilih = "";
-        let dataGlobalInfo = null;
         let timerInterval = null;
 
         async function muatData() {
@@ -92,26 +91,21 @@
                 const response = await fetch(API_URL);
                 const data = await response.json();
 
-                masterJadwal = data.jadwal;
+                masterJadwal = data.jadwal || [];
                 
-                // Ambil tanggal waktu lokal browser pengguna
                 const skrg = new Date();
                 hariAktifRealtime = DAFTAR_HARI[skrg.getDay()];
                 const tglStr = `${skrg.getDate()}/${skrg.getMonth() + 1}/${skrg.getFullYear()}`;
 
-                // Siklus dan Pekan membaca langsung dari objek 'info' backend Code.gs
-                const siklus = data.info ? data.info.siklus : 3;
-                pekanAktifGlobal = data.info ? data.info.pekan : "P2";
+                const siklus = data.info ? (data.info.siklus || data.info.siklus_aktif || "3") : "3";
+                pekanAktifGlobal = data.info ? (data.info.pekan || data.info.pekan_aktif || "P2") : "P2";
 
                 document.getElementById('info-tanggal').innerText = `Hari Ini: ${hariAktifRealtime}, ${tglStr}`;
-                // GANTI BAGIAN INI:
-                document.getElementById('info-siklus').innerText = `Siklus ${data.info.siklus || 3}`;
-                document.getElementById('info-pekan').innerText = data.info.pekan || "P2";
-                pekanAktifGlobal = data.info.pekan || "P2";
+                document.getElementById('info-siklus').innerText = `Siklus ${siklus}`;
+                document.getElementById('info-pekan').innerText = pekanAktifGlobal;
 
-                // Hitung jumlah KP unik hari ini
                 let jadwalHariIni = masterJadwal.filter(item => {
-                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
+                    const cocokHari = item.Hari && item.Hari.toString().trim().toLowerCase() === hariAktifRealtime.toLowerCase();
                     const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
                     return cocokHari && cocokPekan;
                 });
@@ -135,34 +129,10 @@
             }
         }
 
-        function buatTombolPresensi(namaSiswa, jenis, url, kelasWarna) {
-            // Mengecek apakah URL diisi dan bukan cuma strip/kosong
-            if (!url || typeof url !== 'string' || url.trim() === '' || url.trim() === '-') {
-                return '';
-            }
-        
-            const key = `presensi_${namaSiswa}_${jenis}`;
-            const sudahDiklik = localStorage.getItem(key) === 'true';
-        
-            const safeNama = namaSiswa.replace(/'/g, "\\'");
-            const safeUrl = url.replace(/'/g, "\\'");
-        
-            if (sudahDiklik) {
-                return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm">
-                    <i class="fa-solid fa-circle-check"></i> ${jenis}
-                </button>`;
-            }
-        
-            return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-semibold ${kelasWarna} rounded-lg transition-colors">
-                ${jenis}
-            </button>`;
-        }
-        
-        // --- SUBMIT PRESENSI DIRECT (TANPA BUKA TAB BARU) ---
         async function submitPresensiDirect(btnElement, namaSiswa, jenisPresensi, rawUrl) {
-            if (!rawUrl || !rawUrl.includes('docs.google.com/forms')) return;
+            if (!rawUrl || rawUrl.trim() === '') return;
 
-            let targetUrl = rawUrl;
+            let targetUrl = rawUrl.trim();
             if (targetUrl.includes('google.com/url?q=')) {
                 try {
                     const parsed = new URL(targetUrl);
@@ -172,7 +142,9 @@
                 }
             }
 
-            targetUrl = targetUrl.replace('/viewform', '/formResponse');
+            if (targetUrl.includes('docs.google.com/forms')) {
+                targetUrl = targetUrl.replace('/viewform', '/formResponse');
+            }
 
             const originalContent = btnElement.innerHTML;
             btnElement.disabled = true;
@@ -202,7 +174,7 @@
         }
 
         function buatTombolPresensi(namaSiswa, jenis, url, kelasWarna) {
-            if (!url || typeof url !== 'string' || !url.includes('docs.google.com/forms')) {
+            if (!url || typeof url !== 'string' || url.trim() === '' || url.trim() === '-') {
                 return '';
             }
 
@@ -318,7 +290,6 @@
 
         function formatNamaSiswaNext(daftarSiswa) {
             if (!daftarSiswa || daftarSiswa.length === 0) return "-";
-            
             const siswaPertama = daftarSiswa[0];
             if (daftarSiswa.length === 1) {
                 return `${siswaPertama.Nama} (${siswaPertama.Kelas})`;
@@ -334,7 +305,7 @@
                 const skrg = new Date();
                 
                 let jadwalHariIni = masterJadwal.filter(item => {
-                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
+                    const cocokHari = item.Hari && item.Hari.toString().trim().toLowerCase() === hariAktifRealtime.toLowerCase();
                     const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
                     return cocokHari && cocokPekan;
                 });
@@ -437,7 +408,7 @@
             }
         
             let filtered = masterJadwal.filter(item => {
-                const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
+                const cocokHari = item.Hari && item.Hari.toString().trim().toLowerCase() === hariDipilih.toLowerCase();
                 const cocokPekan = item.Pekan_1 === pekanTarget || item.Pekan_2 === pekanTarget;
                 return cocokHari && cocokPekan;
             });
@@ -478,6 +449,13 @@
                 const cabang = item.Cabang || item["Cabang"] || "-";
                 
                 const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
+
+                // Ambil link presensi dari berbagai kemungkinan penamaan key JSON
+                const linkHadir = item.Link_Hadir || item["Link_Hadir"] || item["Link Hadir"] || "";
+                const linkBelum = item.Link_BelumHadir || item["Link_BelumHadir"] || item["Link BelumHadir"] || item["Link Belum Hadir"] || "";
+                const linkSakit = item.Link_Sakit || item["Link_Sakit"] || item["Link Sakit"] || "";
+                const linkIzin = item.Link_Izin || item["Link_Izin"] || item["Link Izin"] || item["Link_Izn"] || "";
+                const linkAlfa = item.Link_Alfa || item["Link_Alfa"] || item["Link Alfa"] || item["Link_Afs"] || "";
         
                 const card = document.createElement('div');
                 card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
@@ -503,11 +481,11 @@
                             <!-- Tombol Presensi Interaktif (Tanpa Tab Baru) -->
                             <div class="flex items-center gap-1.5 mt-3 flex-wrap">
                                 <span class="text-[11px] font-semibold text-slate-400 mr-1">Presensi:</span>
-                                ${buatTombolPresensi(item.Nama, 'Hadir', item.Link_Hadir, 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200')}
-                                ${buatTombolPresensi(item.Nama, 'Belum Hadir', item.Link_BelumHadir, 'bg-amber-100 text-amber-700 hover:bg-amber-200')}
-                                ${buatTombolPresensi(item.Nama, 'Sakit', item.Link_Sakit, 'bg-blue-100 text-blue-700 hover:bg-blue-200')}
-                                ${buatTombolPresensi(item.Nama, 'Izin', item.Link_Izin, 'bg-purple-100 text-purple-700 hover:bg-purple-200')}
-                                ${buatTombolPresensi(item.Nama, 'Alfa', item.Link_Alfa, 'bg-rose-100 text-rose-700 hover:bg-rose-200')}
+                                ${buatTombolPresensi(item.Nama, 'Hadir', linkHadir, 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200')}
+                                ${buatTombolPresensi(item.Nama, 'Belum Hadir', linkBelum, 'bg-amber-100 text-amber-700 hover:bg-amber-200')}
+                                ${buatTombolPresensi(item.Nama, 'Sakit', linkSakit, 'bg-blue-100 text-blue-700 hover:bg-blue-200')}
+                                ${buatTombolPresensi(item.Nama, 'Izin', linkIzin, 'bg-purple-100 text-purple-700 hover:bg-purple-200')}
+                                ${buatTombolPresensi(item.Nama, 'Alfa', linkAlfa, 'bg-rose-100 text-rose-700 hover:bg-rose-200')}
                             </div>
                         </div>
                     </div>
