@@ -135,6 +135,29 @@
             }
         }
 
+        function buatTombolPresensi(namaSiswa, jenis, url, kelasWarna) {
+            // Mengecek apakah URL diisi dan bukan cuma strip/kosong
+            if (!url || typeof url !== 'string' || url.trim() === '' || url.trim() === '-') {
+                return '';
+            }
+        
+            const key = `presensi_${namaSiswa}_${jenis}`;
+            const sudahDiklik = localStorage.getItem(key) === 'true';
+        
+            const safeNama = namaSiswa.replace(/'/g, "\\'");
+            const safeUrl = url.replace(/'/g, "\\'");
+        
+            if (sudahDiklik) {
+                return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-circle-check"></i> ${jenis}
+                </button>`;
+            }
+        
+            return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-semibold ${kelasWarna} rounded-lg transition-colors">
+                ${jenis}
+            </button>`;
+        }
+        
         // --- SUBMIT PRESENSI DIRECT (TANPA BUKA TAB BARU) ---
         async function submitPresensiDirect(btnElement, namaSiswa, jenisPresensi, rawUrl) {
             if (!rawUrl || !rawUrl.includes('docs.google.com/forms')) return;
