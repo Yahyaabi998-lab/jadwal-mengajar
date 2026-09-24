@@ -1,321 +1,509 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jadwal Mengajar Real-Time - Muhammad Yahya Abdullah, S.Pd.</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .loader {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #3b82f6;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Mengajar - Muhammad Yahya Abdullah, S.Pd.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+<body class="bg-slate-50 font-sans antialiased text-slate-800">
 
-  <!-- Header Banner -->
-  <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg mb-6">
-    <div class="max-w-4xl mx-auto px-4 py-6">
-      <div class="flex items-center space-x-3 mb-2">
-        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-          <i class="fa-solid fa-user-tie text-lg"></i>
-        </div>
-        <div>
-          <h2 class="text-sm font-medium text-blue-100">Muhammad Yahya Abdullah, S.Pd.</h2>
-          <h1 class="text-2xl font-bold tracking-tight">Jadwal Mengajar Real-Time</h1>
-        </div>
-      </div>
-      
-      <p id="info-tanggal" class="text-xs text-blue-200 mb-4">Memuat tanggal...</p>
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-user-tie text-blue-200"></i>
+                        <h2 class="text-sm font-semibold tracking-wide text-blue-200">Muhammad Yahya Abdullah, S.Pd.</h2>
+                    </div>
+                    <h1 class="text-2xl md:text-3xl font-bold">Jadwal Mengajar Real-Time</h1>
+                    <p class="text-blue-100 text-sm mt-1" id="info-tanggal">Memuat informasi tanggal...</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-center">
+                        <span class="block text-[10px] uppercase tracking-wider text-blue-100 font-semibold">KP Hari Ini</span>
+                        <span class="text-xl font-extrabold text-amber-300" id="info-jumlah-kp">0</span>
+                    </div>
+                    <div class="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-right">
+                        <span class="block text-[10px] uppercase tracking-wider text-blue-100 font-semibold" id="info-siklus">Siklus --</span>
+                        <span class="text-xl font-extrabold" id="info-pekan">Pekan --</span>
+                    </div>
+                </div>
+            </div>
 
-      <!-- Status Summary Cards -->
-      <div class="grid grid-cols-2 gap-3 mb-4">
-        <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10">
-          <span class="text-[10px] uppercase tracking-wider text-blue-200 font-semibold">KP Hari Ini</span>
-          <div id="info-total-kp" class="text-2xl font-bold mt-0.5">0</div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10">
-          <span id="label-siklus" class="text-[10px] uppercase tracking-wider text-blue-200 font-semibold">Siklus --</span>
-          <div id="info-pekan" class="text-xl font-bold mt-0.5">Pekan --</div>
-        </div>
-      </div>
+            <!-- Widget Countdown KP Selanjutnya -->
+            <div id="box-countdown" class="mt-5 pt-4 border-t border-white/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-amber-400 text-slate-900 flex items-center justify-center font-bold shadow-sm" id="icon-countdown">
+                        <i class="fa-solid fa-clock text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase font-bold tracking-wider text-blue-200 block" id="label-kp-next">KP Selanjutnya Hari Ini</span>
+                        <h3 class="text-sm font-semibold text-white" id="info-kp-next">Mencari KP terdekat...</h3>
+                    </div>
+                </div>
+                <div class="text-left sm:text-right w-full sm:w-auto">
+                    <div class="text-xl font-mono font-black tracking-wider text-amber-300" id="timer-countdown">--:--:--</div>
+                    <span class="text-[11px] text-blue-100 block" id="sub-timer-info">Menghitung mundur</span>
+                </div>
+            </div>
+        </header>
 
-      <!-- Next KP Banner -->
-      <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 rounded-lg bg-amber-400 text-slate-900 flex items-center justify-center">
-            <i class="fa-solid fa-clock text-sm"></i>
-          </div>
-          <div>
-            <span class="text-[10px] uppercase tracking-wider text-blue-200 font-semibold block">KP Selanjutnya Hari Ini</span>
-            <span id="info-next-kp" class="text-xs font-semibold">Mencari KP terdekat...</span>
-          </div>
+        <!-- Filter Tab Hari & Info Hari Dipilih -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 pb-2 border-b border-slate-200">
+            <div class="flex overflow-x-auto gap-2 w-full sm:w-auto" id="container-tab-hari"></div>
+            <div class="text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm shrink-0" id="info-tab-detail">
+                --
+            </div>
         </div>
-        <div class="text-right">
-          <span id="info-countdown" class="text-sm font-mono font-bold text-amber-300">--:--:--</span>
-          <span class="text-[9px] text-blue-200 block">Menghitung mundur</span>
+
+        <!-- Indikator Loading -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent"></div>
+            <p class="mt-3 text-slate-500 font-medium">Mengambil data jadwal...</p>
         </div>
-      </div>
-    </div>
-  </header>
 
-  <main class="max-w-4xl mx-auto px-4">
-    <!-- Navigation Tabs Hari -->
-    <div class="flex overflow-x-auto space-x-2 pb-2 mb-4 scrollbar-none" id="tabs-hari">
-      <button onclick="pilihHari('Senin')" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-600 shadow-sm hover:bg-slate-100 flex-shrink-0 transition">Senin</button>
-      <button onclick="pilihHari('Selasa')" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-600 shadow-sm hover:bg-slate-100 flex-shrink-0 transition">Selasa</button>
-      <button onclick="pilihHari('Rabu')" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-600 shadow-sm hover:bg-slate-100 flex-shrink-0 transition">Rabu</button>
-      <button onclick="pilihHari('Kamis')" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-600 shadow-sm hover:bg-slate-100 flex-shrink-0 transition">Kamis</button>
-      <button onclick="pilihHari('Jumat')" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-600 shadow-sm hover:bg-slate-100 flex-shrink-0 transition">Jumat</button>
-      <button onclick="pilihHari('Sabtu')" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-600 shadow-sm hover:bg-slate-100 flex-shrink-0 transition">Sabtu</button>
-    </div>
+        <!-- Daftar Kartu Jadwal -->
+        <div id="container-jadwal" class="grid gap-4 hidden"></div>
 
-    <!-- Active Filter Info Header -->
-    <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl shadow-sm mb-4 border border-slate-100">
-      <div class="flex items-center space-x-2">
-        <i class="fa-solid fa-calendar-day text-blue-600"></i>
-        <span id="label-hari-aktif" class="text-sm font-semibold text-slate-700">Hari Ini</span>
-      </div>
-      <span id="badge-total-sesi" class="text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full font-medium">0 KP</span>
-    </div>
-
-    <!-- Loading State -->
-    <div id="loading-state" class="py-12 flex flex-col items-center justify-center">
-      <div class="loader mb-3"></div>
-      <p class="text-sm text-slate-500 font-medium">Mengambil data jadwal...</p>
+        <!-- Pesan Kosong -->
+        <div id="empty-state" class="hidden text-center py-12 bg-white rounded-2xl shadow-sm border border-slate-100">
+            <i class="fa-solid fa-calendar-xmark text-4xl text-slate-300 mb-3"></i>
+            <h3 class="text-lg font-semibold text-slate-600">Tidak Ada Jadwal Mengajar</h3>
+            <p class="text-slate-400 text-sm">Tidak ada sesi kelas yang terdaftar untuk hari ini.</p>
+        </div>
     </div>
 
-    <!-- Container Daftar Sesi Jadwal -->
-    <div id="jadwal-container" class="space-y-3 hidden"></div>
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyW52zNb_RuPzt5EbV2Te_qmBaMQgs853CIzTKjPPvfQLG2LToA90jRgKpaOmSQSQPB7w/exec";
+        const DAFTAR_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
-    <!-- Empty State -->
-    <div id="empty-state" class="hidden py-12 text-center bg-white rounded-2xl shadow-sm border border-slate-100">
-      <div class="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-        <i class="fa-solid fa-calendar-xmark text-xl"></i>
-      </div>
-      <h3 class="text-sm font-semibold text-slate-700">Tidak Ada Jadwal Mengajar</h3>
-      <p class="text-xs text-slate-400 mt-1">Tidak ada sesi kelas yang terdaftar untuk hari ini.</p>
-    </div>
-  </main>
+        let masterJadwal = [];
+        let pekanAktifGlobal = "";
+        let hariAktifRealtime = "";
+        let hariDipilih = "";
+        let dataGlobalInfo = null;
+        let timerInterval = null;
 
-  <script>
-    // URL Web App Apps Script (Sesuaikan jika diperlukan)
-    const API_URL = "https://script.google.com/macros/s/AKfycbzvGSYpYhvPxJ0A-BW_Cf1aYqUqOp7h5RWLkNjEBq86aHkyY0TlQP42CRn0_V0Z8Ph_/exec";
+        async function muatData() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
 
-    let globalData = [];
-    let infoData = {};
-    let hariPilihan = "";
-    let hariIniString = "";
+                masterJadwal = data.jadwal;
+                
+                // Ambil tanggal waktu lokal browser pengguna
+                const skrg = new Date();
+                hariAktifRealtime = DAFTAR_HARI[skrg.getDay()];
+                const tglStr = `${skrg.getDate()}/${skrg.getMonth() + 1}/${skrg.getFullYear()}`;
 
-    const daftarHariIndex = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+                // Siklus dan Pekan membaca langsung dari objek 'info' backend Code.gs
+                const siklus = data.info ? data.info.siklus : 3;
+                pekanAktifGlobal = data.info ? data.info.pekan : "P2";
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const today = new Date();
-      hariIniString = daftarHariIndex[today.getDay()];
-      hariPilihan = hariIniString === "Minggu" ? "Senin" : hariIniString;
-      
-      muatData();
-      setInterval(updateCountdown, 1000);
-    });
+                document.getElementById('info-tanggal').innerText = `Hari Ini: ${hariAktifRealtime}, ${tglStr}`;
+                // GANTI BAGIAN INI:
+                document.getElementById('info-siklus').innerText = `Siklus ${data.info.siklus || 3}`;
+                document.getElementById('info-pekan').innerText = data.info.pekan || "P2";
+                pekanAktifGlobal = data.info.pekan || "P2";
 
-    async function muatData() {
-      try {
-        const response = await fetch(API_URL);
-        const json = await response.json();
+                // Hitung jumlah KP unik hari ini
+                let jadwalHariIni = masterJadwal.filter(item => {
+                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
+                    const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                    return cocokHari && cocokPekan;
+                });
+                const jamUnikHariIni = new Set(jadwalHariIni.map(item => bersihkanJam(item.Jam_Mulai)));
+                document.getElementById('info-jumlah-kp').innerText = jamUnikHariIni.size;
 
-        globalData = json.jadwal || [];
-        infoData = json.info || {};
+                hariDipilih = hariAktifRealtime === "Minggu" ? "Senin" : hariAktifRealtime;
+                
+                buatTabHari();
+                tampilkanJadwal();
+                mulaiCountdownKP();
 
-        tampilkanInfo(infoData);
-        updateNavigasiHari(hariPilihan);
-        renderJadwal(hariPilihan);
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('container-jadwal').classList.remove('hidden');
 
-        document.getElementById("loading-state").classList.add("hidden");
-        document.getElementById("jadwal-container").classList.remove("hidden");
-      } catch (err) {
-        console.error("Gagal memuat data:", err);
-        document.getElementById("loading-state").innerHTML = `
-          <div class="text-center text-red-500 text-sm">
-            <i class="fa-solid fa-circle-exclamation text-2xl mb-2"></i>
-            <p>Gagal memuat jadwal. Silakan periksa koneksi internet kamu.</p>
-          </div>
-        `;
-      }
-    }
-
-    function tampilkanInfo(info) {
-      const siklus = info.siklus || info.siklus_aktif || "3";
-      const pekan = info.pekan || info.pekan_aktif || "P2";
-      const tanggal = info.tanggal_akses || new Date().toLocaleDateString('id-ID');
-      const hari = info.hari_aktif || hariIniString;
-
-      document.getElementById("info-tanggal").innerText = `Hari Ini: ${hari}, ${tanggal}`;
-      document.getElementById("label-siklus").innerText = typeof siklus === "number" || !siklus.toLowerCase().includes("siklus") ? `SIKLUS ${siklus}` : siklus.toUpperCase();
-      document.getElementById("info-pekan").innerText = pekan;
-
-      // Hitung total KP khusus hari ini
-      const jadwalHariIni = globalData.filter(item => item.Hari.toLowerCase() === hariIniString.toLowerCase());
-      document.getElementById("info-total-kp").innerText = jadwalHariIni.length;
-    }
-
-    function pilihHari(hari) {
-      hariPilihan = hari;
-      updateNavigasiHari(hari);
-      renderJadwal(hari);
-    }
-
-    function updateNavigasiHari(hariAktif) {
-      const buttons = document.querySelectorAll(".tab-btn");
-      buttons.forEach(btn => {
-        if (btn.innerText.trim().toLowerCase() === hariAktif.toLowerCase()) {
-          btn.className = "tab-btn px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white shadow-md flex-shrink-0 transition";
-        } else {
-          btn.className = "tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-white text-slate-600 shadow-sm hover:bg-slate-100 flex-shrink-0 transition";
+            } catch (err) {
+                document.getElementById('loading').innerHTML = `
+                    <p class="text-red-500 font-semibold">Gagal memuat data jadwal.</p>
+                    <p class="text-xs text-slate-400 mt-1">${err.message}</p>
+                `;
+            }
         }
-      });
-    }
 
-function renderJadwal(hari) {
-  const container = document.getElementById("jadwal-container");
-  const emptyState = document.getElementById("empty-state");
-  container.innerHTML = "";
+        // --- SUBMIT PRESENSI DIRECT (TANPA BUKA TAB BARU) ---
+        async function submitPresensiDirect(btnElement, namaSiswa, jenisPresensi, rawUrl) {
+            if (!rawUrl || !rawUrl.includes('docs.google.com/forms')) return;
 
-  // Pembersihan kata hari agar cocok walau ada spasi atau penulisan beda
-  const hariTarget = hari.trim().toLowerCase();
+            let targetUrl = rawUrl;
+            if (targetUrl.includes('google.com/url?q=')) {
+                try {
+                    const parsed = new URL(targetUrl);
+                    targetUrl = parsed.searchParams.get('q') || targetUrl;
+                } catch (e) {
+                    console.error("Gagal parse URL:", e);
+                }
+            }
 
-  const listFitur = globalData.filter(item => {
-    if (!item.Hari) return false;
-    const h = item.Hari.toString().trim().toLowerCase();
-    return h === hariTarget || h.startsWith(hariTarget.substring(0, 3)); // Mencocokkan "Senin", "Sen", "Selasa", dll.
-  });
-  
-  const tanggalTeks = infoData.tanggal_akses || "";
-  document.getElementById("label-hari-aktif").innerText = `${hari}${hari === hariIniString ? " (Hari Ini)" : ""}${tanggalTeks ? ' • ' + tanggalTeks : ''}`;
-  document.getElementById("badge-total-sesi").innerText = `${listFitur.length} KP (${hariPilihan})`;
+            targetUrl = targetUrl.replace('/viewform', '/formResponse');
 
-  if (listFitur.length === 0) {
-    emptyState.classList.remove("hidden");
-    return;
-  }
-  emptyState.classList.add("hidden");
+            const originalContent = btnElement.innerHTML;
+            btnElement.disabled = true;
+            btnElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...`;
 
-  // Penentuan Modul Materi (P1 & P3 memakai Pekan_1, P2 & P4 memakai Pekan_2)
-  const pekanKey = infoData.pekan || infoData.pekan_aktif || "P1";
-  const isPekanGanjil = pekanKey.includes("1") || pekanKey.includes("3");
+            try {
+                await fetch(targetUrl, {
+                    method: 'POST',
+                    mode: 'no-cors'
+                });
 
-  listFitur.forEach((item) => {
-    const modulText = isPekanGanjil 
-      ? (item.Pekan_1 || item["Pekan_1"] || "-") 
-      : (item.Pekan_2 || item["Pekan_2"] || "-");
+                const key = `presensi_${namaSiswa}_${jenisPresensi}`;
+                localStorage.setItem(key, 'true');
 
-    const card = document.createElement("div");
-    card.className = "bg-white rounded-2xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition";
+                btnElement.className = "px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm cursor-default";
+                btnElement.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${jenisPresensi}`;
+                btnElement.disabled = false;
 
-    card.innerHTML = `
-      <div class="flex items-start justify-between border-b border-slate-100 pb-3 mb-3">
-        <div>
-          <div class="flex items-center space-x-2">
-            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">${item.Jam_Mulai} - ${item.Jam_Selesai}</span>
-            <span class="text-xs font-semibold text-slate-500">${item.Ruang ? 'Ruang ' + item.Ruang : ''}</span>
-          </div>
-          <h3 class="text-base font-bold text-slate-800 mt-1">${item.Nama}</h3>
-          <p class="text-xs text-slate-500">${item.Kelas} • ${item.Asal_Sekolah}</p>
-        </div>
-        <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">${item.Cabang}</span>
-      </div>
+                tampilkanPopup(`Presensi <b>${jenisPresensi}</b> untuk <b>${namaSiswa}</b> berhasil dicatat!`);
 
-      <div class="bg-slate-50 p-2.5 rounded-xl text-xs text-slate-600 mb-3 flex items-start space-x-2">
-        <i class="fa-solid fa-book-open text-blue-500 mt-0.5"></i>
-        <div>
-          <span class="font-semibold text-slate-700">Materi ${pekanKey}:</span> ${modulText}
-        </div>
-      </div>
-
-      <!-- Tombol Presensi Direct -->
-      <div class="grid grid-cols-5 gap-1.5 pt-1">
-        <button onclick="kirimPresensi('${item.Link_Hadir}')" class="py-1.5 text-[11px] font-medium bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition text-center">Hadir</button>
-        <button onclick="kirimPresensi('${item.Link_BelumHadir}')" class="py-1.5 text-[11px] font-medium bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white rounded-lg transition text-center">Belum</button>
-        <button onclick="kirimPresensi('${item.Link_Sakit}')" class="py-1.5 text-[11px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition text-center">Sakit</button>
-        <button onclick="kirimPresensi('${item.Link_Izin}')" class="py-1.5 text-[11px] font-medium bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white rounded-lg transition text-center">Izin</button>
-        <button onclick="kirimPresensi('${item.Link_Alfa}')" class="py-1.5 text-[11px] font-medium bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg transition text-center">Alfa</button>
-      </div>
-    `;
-    container.appendChild(card);
-  });
-}
-    // Fungsi pengiriman presensi langsung (Direct Submission / Background Submit)
-    function kirimPresensi(url) {
-      if (!url || url.trim() === "" || url === "-") {
-        alert("Link presensi untuk opsi ini belum tersedia.");
-        return;
-      }
-      
-      // Mengirimkan ping request tanpa membuka tab baru
-      fetch(url, { mode: 'no-cors' })
-        .then(() => {
-          alert("Presensi berhasil dicatat!");
-        })
-        .catch(() => {
-          // Fallback jika tidak mendukung fetch no-cors
-          const img = new Image();
-          img.src = url;
-          alert("Presensi berhasil dikirim!");
-        });
-    }
-
-    // Logika Hitung Mundur KP Terdekat
-    function updateCountdown() {
-      const jadwalHariIni = globalData.filter(item => item.Hari.toLowerCase() === hariIniString.toLowerCase());
-      const now = new Date();
-
-      if (jadwalHariIni.length === 0) {
-        document.getElementById("info-next-kp").innerText = "Tidak ada KP hari ini";
-        document.getElementById("info-countdown").innerText = "--:--:--";
-        return;
-      }
-
-      let nextKP = null;
-      let minDiff = Infinity;
-
-      jadwalHariIni.forEach(item => {
-        const jamParts = item.Jam_Mulai.split(":");
-        if (jamParts.length >= 2) {
-          const targetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(jamParts[0]), parseInt(jamParts[1]), 0);
-          const diff = targetTime - now;
-
-          if (diff > 0 && diff < minDiff) {
-            minDiff = diff;
-            nextKP = { item, targetTime };
-          }
+            } catch (error) {
+                console.error("Gagal submit presensi:", error);
+                btnElement.disabled = false;
+                btnElement.innerHTML = originalContent;
+                tampilkanPopup(`Gagal mengirim presensi. Coba lagi.`);
+            }
         }
-      });
 
-      if (nextKP) {
-        document.getElementById("info-next-kp").innerText = `${nextKP.item.Nama} (${nextKP.item.Jam_Mulai})`;
+        function buatTombolPresensi(namaSiswa, jenis, url, kelasWarna) {
+            if (!url || typeof url !== 'string' || !url.includes('docs.google.com/forms')) {
+                return '';
+            }
 
-        const hours = Math.floor(minDiff / (1000 * 60 * 60));
-        const minutes = Math.floor((minDiff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((minDiff % (1000 * 60)) / 1000);
+            const key = `presensi_${namaSiswa}_${jenis}`;
+            const sudahDiklik = localStorage.getItem(key) === 'true';
 
-        document.getElementById("info-countdown").innerText = 
-          `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      } else {
-        document.getElementById("info-next-kp").innerText = "Sesi hari ini telah selesai";
-        document.getElementById("info-countdown").innerText = "00:00:00";
-      }
-    }
-  </script>
+            const safeNama = namaSiswa.replace(/'/g, "\\'");
+            const safeUrl = url.replace(/'/g, "\\'");
+
+            if (sudahDiklik) {
+                return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm">
+                    <i class="fa-solid fa-circle-check"></i> ${jenis}
+                </button>`;
+            }
+
+            return `<button type="button" onclick="submitPresensiDirect(this, '${safeNama}', '${jenis}', '${safeUrl}')" class="px-2.5 py-1 text-xs font-semibold ${kelasWarna} rounded-lg transition-colors">
+                ${jenis}
+            </button>`;
+        }
+
+        function tampilkanPopup(pesan) {
+            let popup = document.getElementById('toast-presensi');
+            if (!popup) {
+                popup = document.createElement('div');
+                popup.id = 'toast-presensi';
+                popup.className = "fixed bottom-5 right-5 bg-slate-900/90 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl z-50 flex items-center gap-3 transition-all transform translate-y-10 opacity-0 border border-slate-700 text-sm";
+                document.body.appendChild(popup);
+            }
+
+            popup.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-base"></i> <span>${pesan}</span>`;
+            
+            setTimeout(() => {
+                popup.classList.remove('translate-y-10', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                popup.classList.add('translate-y-10', 'opacity-0');
+            }, 3000);
+        }
+
+        function buatTabHari() {
+            const containerTab = document.getElementById('container-tab-hari');
+            containerTab.innerHTML = "";
+
+            DAFTAR_HARI.forEach(hari => {
+                if (hari === "Minggu") return;
+                
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
+                    hari === hariDipilih 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`;
+                btn.innerText = hari;
+                btn.onclick = () => {
+                    hariDipilih = hari;
+                    buatTabHari();
+                    tampilkanJadwal();
+                };
+                containerTab.appendChild(btn);
+            });
+        }
+
+        function bersihkanJam(strJam) {
+            if (!strJam) return "00:00";
+            let jamClean = String(strJam).trim();
+            if (jamClean.includes('T')) {
+                const dateObj = new Date(jamClean);
+                const h = String(dateObj.getUTCHours()).padStart(2, '0');
+                const m = String(dateObj.getUTCMinutes()).padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            jamClean = jamClean.replace('.', ':');
+            const parts = jamClean.split(':');
+            if (parts.length >= 2) {
+                const h = parts[0].padStart(2, '0');
+                const m = parts[1].padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            return jamClean.substring(0, 5);
+        }
+
+        function hitungStatusWaktu(jamMulaiStr, jamSelesaiStr, hariJadwal) {
+            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
+            const indexHariTab = DAFTAR_HARI.indexOf(hariJadwal);
+
+            if (indexHariTab > indexHariIni) {
+                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
+            }
+
+            if (indexHariTab < indexHariIni) {
+                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
+            }
+
+            const skrg = new Date();
+            const [hMulai, mMulai] = jamMulaiStr.split(':').map(Number);
+            const [hSelesai, mSelesai] = jamSelesaiStr.split(':').map(Number);
+
+            const waktuMulai = new Date(skrg);
+            waktuMulai.setHours(hMulai || 0, mMulai || 0, 0);
+
+            const waktuSelesai = new Date(skrg);
+            waktuSelesai.setHours(hSelesai || 0, mSelesai || 0, 0);
+
+            if (skrg >= waktuMulai && skrg <= waktuSelesai) {
+                return { label: "● LIVE NOW", color: "bg-emerald-500 text-white animate-pulse" };
+            } else if (skrg < waktuMulai) {
+                return { label: "Akan Datang", color: "bg-amber-50 text-amber-600 border border-amber-200" };
+            } else {
+                return { label: "Selesai", color: "bg-slate-100 text-slate-400" };
+            }
+        }
+
+        function formatNamaSiswaNext(daftarSiswa) {
+            if (!daftarSiswa || daftarSiswa.length === 0) return "-";
+            
+            const siswaPertama = daftarSiswa[0];
+            if (daftarSiswa.length === 1) {
+                return `${siswaPertama.Nama} (${siswaPertama.Kelas})`;
+            } else {
+                return `${siswaPertama.Nama} dkk. (${siswaPertama.Kelas}, ${daftarSiswa.length} Siswa)`;
+            }
+        }
+
+        function mulaiCountdownKP() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            function updateTimer() {
+                const skrg = new Date();
+                
+                let jadwalHariIni = masterJadwal.filter(item => {
+                    const cocokHari = item.Hari && item.Hari.toLowerCase() === hariAktifRealtime.toLowerCase();
+                    const cocokPekan = item.Pekan_1 === pekanAktifGlobal || item.Pekan_2 === pekanAktifGlobal;
+                    return cocokHari && cocokPekan;
+                });
+
+                if (jadwalHariIni.length === 0) {
+                    document.getElementById('info-kp-next').innerText = "Tidak ada KP hari ini";
+                    document.getElementById('timer-countdown').innerText = "--:--:--";
+                    document.getElementById('sub-timer-info').innerText = "Selamat beristirahat😊";
+                    return;
+                }
+
+                let grupJadwal = {};
+                jadwalHariIni.forEach(item => {
+                    const jamMulaiStr = bersihkanJam(item.Jam_Mulai);
+                    if (!grupJadwal[jamMulaiStr]) {
+                        grupJadwal[jamMulaiStr] = {
+                            jamMulai: jamMulaiStr,
+                            jamSelesai: bersihkanJam(item.Jam_Selesai),
+                            listSiswa: []
+                        };
+                    }
+                    grupJadwal[jamMulaiStr].listSiswa.push(item);
+                });
+
+                let sesiLive = null;
+                let sesiMendatang = [];
+
+                Object.values(grupJadwal).forEach(grup => {
+                    const [hMulai, mMulai] = grup.jamMulai.split(':').map(Number);
+                    const [hSelesai, mSelesai] = grup.jamSelesai.split(':').map(Number);
+
+                    const tMulai = new Date(skrg);
+                    tMulai.setHours(hMulai, mMulai, 0, 0);
+
+                    const tSelesai = new Date(skrg);
+                    tSelesai.setHours(hSelesai, mSelesai, 0, 0);
+
+                    if (skrg >= tMulai && skrg <= tSelesai) {
+                        sesiLive = { grup, tSelesai };
+                    } else if (skrg < tMulai) {
+                        sesiMendatang.push({ grup, tMulai });
+                    }
+                });
+
+                if (sesiLive) {
+                    const selisih = sesiLive.tSelesai - skrg;
+                    const jam = Math.floor(selisih / 3600000);
+                    const menit = Math.floor((selisih % 3600000) / 60000);
+                    const detik = Math.floor((selisih % 60000) / 1000);
+
+                    document.getElementById('label-kp-next').innerText = "KP Sedang Berlangsung";
+                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiLive.grup.listSiswa);
+                    document.getElementById('timer-countdown').innerText = 
+                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
+                    document.getElementById('sub-timer-info').innerText = "Sisa waktu mengajar";
+                    return;
+                }
+
+                if (sesiMendatang.length > 0) {
+                    sesiMendatang.sort((a, b) => a.tMulai - b.tMulai);
+                    const sesiBerikutnya = sesiMendatang[0];
+
+                    const selisih = sesiBerikutnya.tMulai - skrg;
+                    const jam = Math.floor(selisih / 3600000);
+                    const menit = Math.floor((selisih % 3600000) / 60000);
+                    const detik = Math.floor((selisih % 60000) / 1000);
+
+                    document.getElementById('label-kp-next').innerText = `KP Selanjutnya (${sesiBerikutnya.grup.jamMulai} WIB)`;
+                    document.getElementById('info-kp-next').innerText = formatNamaSiswaNext(sesiBerikutnya.grup.listSiswa);
+                    document.getElementById('timer-countdown').innerText = 
+                        `${String(jam).padStart(2,'0')}:${String(menit).padStart(2,'0')}:${String(detik).padStart(2,'0')}`;
+                    document.getElementById('sub-timer-info').innerText = "Menuju sesi dimulai";
+                    return;
+                }
+
+                document.getElementById('label-kp-next').innerText = "Status Sesi Hari Ini";
+                document.getElementById('info-kp-next').innerText = "Semua KP Hari Ini Telah Selesai";
+                document.getElementById('timer-countdown').innerText = "00:00:00";
+                document.getElementById('sub-timer-info').innerText = "Sampai jumpa di KP berikutnya😊";
+            }
+
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function tampilkanJadwal() {
+            const container = document.getElementById('container-jadwal');
+            const emptyState = document.getElementById('empty-state');
+            container.innerHTML = "";
+        
+            const indexHariIni = DAFTAR_HARI.indexOf(hariAktifRealtime);
+            const indexHariDipilih = DAFTAR_HARI.indexOf(hariDipilih);
+        
+            let pekanTarget = pekanAktifGlobal;
+        
+            if (indexHariIni === 0 && indexHariDipilih > 0) {
+                const angkaPekan = parseInt(pekanAktifGlobal.replace(/\D/g, '')) || 1;
+                const pekanBerikutnya = (angkaPekan % 4) + 1;
+                pekanTarget = `P${pekanBerikutnya}`;
+            }
+        
+            let filtered = masterJadwal.filter(item => {
+                const cocokHari = item.Hari && item.Hari.toLowerCase() === hariDipilih.toLowerCase();
+                const cocokPekan = item.Pekan_1 === pekanTarget || item.Pekan_2 === pekanTarget;
+                return cocokHari && cocokPekan;
+            });
+        
+            const tglAktif = new Date();
+            const selisihHari = indexHariDipilih - indexHariIni;
+            const tglDipilih = new Date(tglAktif);
+            tglDipilih.setDate(tglAktif.getDate() + (selisihHari < 0 ? selisihHari + 7 : selisihHari));
+        
+            const tglFormatted = `${tglDipilih.getDate()}/${tglDipilih.getMonth() + 1}/${tglDipilih.getFullYear()}`;
+            const jamUnikDipilih = new Set(filtered.map(item => bersihkanJam(item.Jam_Mulai))).size;
+        
+            const elInfoTab = document.getElementById('info-tab-detail');
+            if (elInfoTab) {
+                elInfoTab.innerHTML = `<i class="fa-solid fa-calendar-day text-blue-500 mr-1.5"></i>${hariDipilih}, ${tglFormatted} • <span class="text-blue-600 font-bold">${jamUnikDipilih} KP</span> (${pekanTarget})`;
+            }
+        
+            if (filtered.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+        
+            filtered.sort((a, b) => {
+                const jamA = bersihkanJam(a.Jam_Mulai);
+                const jamB = bersihkanJam(b.Jam_Mulai);
+                return jamA.localeCompare(jamB);
+            });
+        
+            emptyState.classList.add('hidden');
+            container.classList.remove('hidden');
+        
+            filtered.forEach((item, index) => {
+                const jamMulai = bersihkanJam(item.Jam_Mulai);
+                const jamSelesai = bersihkanJam(item.Jam_Selesai);
+                const sekolah = item.Asal_Sekolah || item["Asal Sekolah"] || "-";
+                const ruang = item.Ruang || item["Ruang"] || "-";
+                const cabang = item.Cabang || item["Cabang"] || "-";
+                
+                const status = hitungStatusWaktu(jamMulai, jamSelesai, item.Hari);
+        
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4";
+                
+                card.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-slate-800 text-base md:text-lg">${item.Nama}</h4>
+                                <span class="text-xs font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">${item.Kelas}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-md">${cabang}</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-slate-500 text-xs mt-1.5 flex-wrap">
+                                <span><i class="fa-solid fa-school text-slate-400 mr-1"></i>${sekolah}</span>
+                                <span>•</span>
+                                <span class="font-medium text-blue-600"><i class="fa-solid fa-door-open text-blue-500 mr-1"></i>${ruang}</span>
+                            </div>
+            
+                            <!-- Tombol Presensi Interaktif (Tanpa Tab Baru) -->
+                            <div class="flex items-center gap-1.5 mt-3 flex-wrap">
+                                <span class="text-[11px] font-semibold text-slate-400 mr-1">Presensi:</span>
+                                ${buatTombolPresensi(item.Nama, 'Hadir', item.Link_Hadir, 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200')}
+                                ${buatTombolPresensi(item.Nama, 'Belum Hadir', item.Link_BelumHadir, 'bg-amber-100 text-amber-700 hover:bg-amber-200')}
+                                ${buatTombolPresensi(item.Nama, 'Sakit', item.Link_Sakit, 'bg-blue-100 text-blue-700 hover:bg-blue-200')}
+                                ${buatTombolPresensi(item.Nama, 'Izin', item.Link_Izin, 'bg-purple-100 text-purple-700 hover:bg-purple-200')}
+                                ${buatTombolPresensi(item.Nama, 'Alfa', item.Link_Alfa, 'bg-rose-100 text-rose-700 hover:bg-rose-200')}
+                            </div>
+                        </div>
+                    </div>
+            
+                    <div class="flex md:flex-col items-end justify-between w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        <span class="text-xs font-bold px-3 py-1 rounded-full ${status.color}">
+                            ${status.label}
+                        </span>
+                        <div class="text-right mt-1">
+                            <span class="text-sm font-semibold text-slate-700 block">${jamMulai} - ${jamSelesai} WIB</span>
+                            <span class="text-[11px] text-slate-400">Pekan: ${item.Pekan_1}, ${item.Pekan_2}</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        window.onload = muatData;
+    </script>
 </body>
 </html>
