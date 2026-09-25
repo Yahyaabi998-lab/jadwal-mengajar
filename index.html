@@ -101,7 +101,7 @@
                 pekanAktifGlobal = data.info ? (data.info.pekan || data.info.pekan_aktif || "P2") : "P2";
 
                 document.getElementById('info-tanggal').innerText = `Hari Ini: ${hariAktifRealtime}, ${tglStr}`;
-                document.getElementById('info-siklus').innerText = `Siklus ${siklus}`;
+                document.getElementById('info-siklus').innerText = siklus.toString().toLowerCase().includes("siklus") ? siklus : `Siklus ${siklus}`;
                 document.getElementById('info-pekan').innerText = pekanAktifGlobal;
 
                 let jadwalHariIni = masterJadwal.filter(item => {
